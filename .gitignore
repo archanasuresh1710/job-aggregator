@@ -1,0 +1,23 @@
+# Maven
+backend/target/
+backend/.mvn/
+backend/*.class
+
+# Application config with secrets — copy application.yml.example instead
+backend/src/main/resources/application.yml
+
+# Resumes — personal files, do not push
+backend/src/main/resources/resume/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Logs
+*.log

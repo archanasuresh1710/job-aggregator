@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jobdb
+    username: postgres
+    password: your_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+adzuna:
+  app-id: "YOUR_APP_ID"
+  app-key: "YOUR_APP_KEY"
+  url: "https://api.adzuna.com/v1/api/jobs/in/search/1"
+  query: "java spring boot"
+  location: "bangalore"
+  results-per-page: 50
+
+logging:
+  level:
+    com.archana.jobs: INFO
