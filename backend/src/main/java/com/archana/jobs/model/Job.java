@@ -38,6 +38,9 @@ public class Job {
     @Column(length = 50)
     private String domain; // 'fintech' or 'other'
 
+    @Column(length = 10)
+    private String country; // 'IN', 'GB', etc.
+
     @Column(columnDefinition = "TEXT")
     private String description;
 

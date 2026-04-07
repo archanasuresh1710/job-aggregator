@@ -108,6 +108,7 @@ public class NaukriService {
                     .description(description)
                     .skills(SkillExtractor.extract(title, description != null ? description : ""))
                     .postedDate(postedDate)
+                    .country("IN")
                     .build();
 
         } catch (Exception e) {

@@ -17,6 +17,9 @@ public class JobIngestionService {
     private final JobRepository jobRepository;
     private final AdzunaService adzunaService;
     private final LinkedInService linkedInService;
+    private final ReedUkService reedUkService;
+    private final LinkedInRemoteService linkedInRemoteService;
+    private final AdzunaRemoteService adzunaRemoteService;
 
     public void ingestAll() {
         log.info("Starting job ingestion...");
@@ -24,6 +27,9 @@ public class JobIngestionService {
 
         newJobsCount.addAndGet(saveNew(linkedInService.fetchJobs(), "linkedin"));
         newJobsCount.addAndGet(saveNew(adzunaService.fetchJobs(), "adzuna"));
+        newJobsCount.addAndGet(saveNew(reedUkService.fetchJobs(), "reed-uk"));
+        newJobsCount.addAndGet(saveNew(linkedInRemoteService.fetchJobs(), "linkedin-remote"));
+        newJobsCount.addAndGet(saveNew(adzunaRemoteService.fetchJobs(), "adzuna-remote"));
 
         log.info("Ingestion complete. {} new jobs saved.", newJobsCount.get());
     }

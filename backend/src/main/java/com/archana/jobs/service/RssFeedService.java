@@ -89,6 +89,7 @@ public class RssFeedService {
                     .source(source)
                     .description(description)
                     .postedDate(postedDate)
+                    .country("IN")
                     .build();
 
         } catch (Exception e) {

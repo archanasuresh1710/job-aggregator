@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { getApplications, getAllApplications, uploadCsv, updateStatus, deleteApplication } from '../api/applications'
 import AddApplicationModal from './AddApplicationModal'
+import ColumnFilter from './ColumnFilter'
 
 const STATUS_STYLES = {
   'Applied':        { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
@@ -21,7 +22,10 @@ export default function ApplicationsTab() {
   const [loading, setLoading] = useState(false)
   const [uploadMsg, setUploadMsg] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [interviewFilter, setInterviewFilter] = useState([])
+  const [locationFilter, setLocationFilter] = useState([])
   const [editingId, setEditingId] = useState(null)
+  const [editCompany, setEditCompany] = useState('')
   const [editStatus, setEditStatus] = useState('')
   const [editInterview, setEditInterview] = useState('')
   const [editRemarks, setEditRemarks] = useState('')
@@ -33,6 +37,22 @@ export default function ApplicationsTab() {
       return acc
     }, {}))
   }
+
+  // Unique options for column filters
+  const interviewOptions = useMemo(() =>
+    [...new Set(applications.map(a => a.interview || '').filter(Boolean))].sort()
+  , [applications])
+
+  const locationOptions = useMemo(() =>
+    [...new Set(applications.map(a => (a.location || '').trim()).filter(Boolean))].sort()
+  , [applications])
+
+  // Apply column filters on top of backend-filtered results
+  const visibleApplications = useMemo(() => applications.filter(a => {
+    if (interviewFilter.length > 0 && !interviewFilter.includes(a.interview || '')) return false
+    if (locationFilter.length > 0 && !locationFilter.includes((a.location || '').trim())) return false
+    return true
+  }), [applications, interviewFilter, locationFilter])
 
   const load = async () => {
     setLoading(true)
@@ -51,6 +71,8 @@ export default function ApplicationsTab() {
   useEffect(() => { loadCounts() }, [])
 
   useEffect(() => {
+    setInterviewFilter([])
+    setLocationFilter([])
     const delay = setTimeout(load, 300)
     return () => clearTimeout(delay)
   }, [filter, company, sort])
@@ -70,13 +92,14 @@ export default function ApplicationsTab() {
 
   const startEdit = (app) => {
     setEditingId(app.id)
+    setEditCompany(app.company || '')
     setEditStatus(app.status)
     setEditInterview(app.interview || '')
     setEditRemarks(app.remarks || '')
   }
 
   const saveEdit = async (id) => {
-    const updated = await updateStatus(id, { status: editStatus, interview: editInterview, remarks: editRemarks })
+    const updated = await updateStatus(id, { company: editCompany, status: editStatus, interview: editInterview, remarks: editRemarks })
     setApplications(prev => prev.map(a => a.id === id ? updated : a))
     setEditingId(null)
     loadCounts()
@@ -143,7 +166,7 @@ export default function ApplicationsTab() {
         <p className="status">No applications. Add one or import a CSV.</p>
       )}
 
-      {applications.length > 0 && (
+      {visibleApplications.length > 0 && (
         <div className="applications-table-wrap">
           <table className="applications-table">
             <thead>
@@ -152,23 +175,40 @@ export default function ApplicationsTab() {
                 <th>Company</th>
                 <th>Role</th>
                 <th>Date</th>
-                <th>Location</th>
+                <th>
+                  <ColumnFilter
+                    label="Location"
+                    options={locationOptions}
+                    selected={locationFilter}
+                    onChange={setLocationFilter}
+                  />
+                </th>
                 <th>Status</th>
-                <th>Interview</th>
+                <th>
+                  <ColumnFilter
+                    label="Interview"
+                    options={interviewOptions}
+                    selected={interviewFilter}
+                    onChange={setInterviewFilter}
+                  />
+                </th>
                 <th>Via</th>
                 <th>Remarks</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {applications.map((app, i) => {
+              {visibleApplications.map((app, i) => {
                 const style = STATUS_STYLES[app.status] || STATUS_STYLES['No Callback']
                 const isEditing = editingId === app.id
                 return (
                   <tr key={app.id}>
                     <td>{i + 1}</td>
                     <td className="td-company">
-                      {app.statusCheckUrl
+                      {isEditing ? (
+                        <input value={editCompany} onChange={e => setEditCompany(e.target.value)}
+                          className="inline-input" placeholder="company..." />
+                      ) : app.statusCheckUrl
                         ? <a href={app.statusCheckUrl} target="_blank" rel="noopener noreferrer">{app.company}</a>
                         : app.company}
                     </td>

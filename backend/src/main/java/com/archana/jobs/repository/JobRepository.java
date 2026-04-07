@@ -23,7 +23,18 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             AND (CAST(?2 AS text) IS NULL OR source = ?2)
             AND (CAST(?3 AS text) IS NULL OR domain = ?3)
             AND (?4 = false OR is_seen = false)
+            AND (CAST(?5 AS text) IS NULL
+                 OR (?5 = 'GLOBAL' AND country IN ('GB', 'REMOTE'))
+                 OR (?5 = 'IN'     AND (country = 'IN' OR country IS NULL))
+                 OR (?5 NOT IN ('GLOBAL', 'IN') AND country = ?5))
+            AND (?6 = false OR (
+                 description ILIKE '%visa sponsor%'
+                 OR description ILIKE '%sponsorship%'
+                 OR description ILIKE '%skilled worker%'
+                 OR description ILIKE '%right to work%'
+                 OR description ILIKE '%work visa%'
+                 OR description ILIKE '%visa support%'))
             ORDER BY posted_date DESC NULLS LAST, ingested_at DESC
             """, nativeQuery = true)
-    List<Job> findByFilters(String keyword, String source, String domain, boolean hideSeen);
+    List<Job> findByFilters(String keyword, String source, String domain, boolean hideSeen, String country, boolean sponsorship);
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { addApplication } from '../api/applications'
 
 const STATUSES = ['Applied', 'Interview Round', 'Rejected', 'No Callback']
-const MODES = ['LinkedIn', 'Naukri', 'Foundit', 'Referral', 'Career Page', 'Other']
+const MODES = ['LinkedIn', 'Naukri', 'Foundit', 'Wellfound', 'Referral', 'Career Page', 'Other']
 
 
 const empty = {

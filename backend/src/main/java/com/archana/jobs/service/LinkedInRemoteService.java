@@ -17,17 +17,17 @@ import java.util.List;
 
 @Slf4j
 @Service
-public class LinkedInService {
+public class LinkedInRemoteService {
 
-    // f_E=4 → Mid-Senior level (matches 5+ years experience)
-    private static final String LINKEDIN_GUEST_API =
+    // f_WT=2 → Remote, f_E=4 → Mid-Senior level
+    private static final String LINKEDIN_REMOTE_API =
             "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search" +
-            "?keywords=Java+Spring+Boot+Fintech&location=Bangalore&f_TPR=r86400&f_E=4&start=0";
+            "?keywords=Java+Spring+Backend&location=Worldwide&f_WT=2&f_TPR=r86400&f_E=4&start=0";
 
     public List<Job> fetchJobs() {
         List<Job> jobs = new ArrayList<>();
         try {
-            Document doc = Jsoup.connect(LINKEDIN_GUEST_API)
+            Document doc = Jsoup.connect(LINKEDIN_REMOTE_API)
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
                                "AppleWebKit/537.36 (KHTML, like Gecko) " +
                                "Chrome/120.0.0.0 Safari/537.36")
@@ -41,9 +41,9 @@ public class LinkedInService {
                 if (job != null) jobs.add(job);
             }
 
-            log.info("Fetched {} jobs from LinkedIn", jobs.size());
+            log.info("Fetched {} remote jobs from LinkedIn", jobs.size());
         } catch (Exception e) {
-            log.error("Failed to fetch LinkedIn jobs: {}", e.getMessage());
+            log.error("Failed to fetch LinkedIn remote jobs: {}", e.getMessage());
         }
         return jobs;
     }
@@ -65,9 +65,8 @@ public class LinkedInService {
             String company = companyEl != null ? companyEl.text().trim() : "Unknown";
 
             Element locationEl = card.selectFirst(".job-search-card__location");
-            String location = locationEl != null ? locationEl.text().trim() : "Bangalore";
+            String location = locationEl != null ? locationEl.text().trim() : "Remote";
 
-            // Extract any description snippet available in the card
             Element descEl = card.selectFirst(".job-search-card__snippet, .base-search-card__metadata");
             String description = descEl != null ? descEl.text().trim() : null;
 
@@ -88,16 +87,16 @@ public class LinkedInService {
                     .company(company)
                     .location(location)
                     .url(url)
-                    .source("linkedin")
+                    .source("linkedin-remote")
                     .description(description)
                     .skills(SkillExtractor.extract(title, description != null ? description : ""))
                     .domain(DomainClassifier.classify(company, title, description))
                     .postedDate(postedDate)
-                    .country("IN")
+                    .country("REMOTE")
                     .build();
 
         } catch (Exception e) {
-            log.warn("Failed to parse LinkedIn job card: {}", e.getMessage());
+            log.warn("Failed to parse LinkedIn remote job card: {}", e.getMessage());
             return null;
         }
     }
