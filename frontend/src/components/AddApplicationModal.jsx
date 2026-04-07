@@ -1,13 +1,13 @@
 import React, { useState } from 'react'
 import { addApplication } from '../api/applications'
 
-const STATUSES = ['Applied', 'Interview Round', 'Rejected', 'No Callback']
+const STATUSES = ['Awaiting', 'Interview Round', 'Rejected', 'No Callback']
 const MODES = ['LinkedIn', 'Naukri', 'Foundit', 'Wellfound', 'Referral', 'Career Page', 'Other']
 
 
 const empty = {
   company: '', role: '', appliedDate: '', location: '',
-  status: 'Applied', interview: '', remarks: '', modeOfApplication: 'LinkedIn',
+  status: 'Awaiting', interview: '', remarks: '', modeOfApplication: 'LinkedIn',
   statusCheckUrl: ''
 }
 

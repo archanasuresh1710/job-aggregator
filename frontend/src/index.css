@@ -81,6 +81,13 @@ body {
 .stat-count { display: block; font-size: 24px; font-weight: 700; }
 .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
 
+.stat-card-total {
+  border-color: #6b7280;
+  background: #f9fafb;
+}
+.stat-card-total .stat-count { color: #111827; }
+.stat-card-total .stat-label { color: #374151; }
+
 .btn-upload {
   padding: 10px 20px;
   background: #0f3460;

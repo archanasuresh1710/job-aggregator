@@ -4,13 +4,13 @@ import AddApplicationModal from './AddApplicationModal'
 import ColumnFilter from './ColumnFilter'
 
 const STATUS_STYLES = {
-  'Applied':        { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
+  'Awaiting':       { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
   'Interview Round':{ bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
   'Rejected':       { bg: '#fde8e8', color: '#c81e1e', border: '#fbd5d5' },
   'No Callback':    { bg: '#f3f4f6', color: '#6b7280', border: '#e5e7eb' },
 }
 
-const ALL_STATUSES = ['Applied', 'Interview Round', 'Rejected', 'No Callback']
+const ALL_STATUSES = ['Awaiting', 'Interview Round', 'Rejected', 'No Callback']
 const FILTERS = ['All', ...ALL_STATUSES]
 
 export default function ApplicationsTab() {
@@ -24,6 +24,7 @@ export default function ApplicationsTab() {
   const [showModal, setShowModal] = useState(false)
   const [interviewFilter, setInterviewFilter] = useState([])
   const [locationFilter, setLocationFilter] = useState([])
+  const [statusLinksOnly, setStatusLinksOnly] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [editCompany, setEditCompany] = useState('')
   const [editStatus, setEditStatus] = useState('')
@@ -49,10 +50,11 @@ export default function ApplicationsTab() {
 
   // Apply column filters on top of backend-filtered results
   const visibleApplications = useMemo(() => applications.filter(a => {
+    if (statusLinksOnly && !a.statusCheckUrl) return false
     if (interviewFilter.length > 0 && !interviewFilter.includes(a.interview || '')) return false
     if (locationFilter.length > 0 && !locationFilter.includes((a.location || '').trim())) return false
     return true
-  }), [applications, interviewFilter, locationFilter])
+  }), [applications, interviewFilter, locationFilter, statusLinksOnly])
 
   const load = async () => {
     setLoading(true)
@@ -117,6 +119,11 @@ export default function ApplicationsTab() {
     <div className="applications-tab">
       <div className="applications-header">
         <div className="stat-cards">
+          <div className="stat-card stat-card-total"
+            onClick={() => setFilter('All')} role="button">
+            <span className="stat-count">{Object.values(counts).reduce((a, b) => a + b, 0) || '—'}</span>
+            <span className="stat-label">Total Applied</span>
+          </div>
           {ALL_STATUSES.map(s => (
             <div key={s} className="stat-card" style={{ borderColor: STATUS_STYLES[s]?.border }}
               onClick={() => setFilter(s)} role="button">
@@ -159,6 +166,13 @@ export default function ApplicationsTab() {
             {s}
           </button>
         ))}
+        <button
+          className={`filter-pill ${statusLinksOnly ? 'active' : ''}`}
+          onClick={() => setStatusLinksOnly(v => !v)}
+          title="Show only applications with a status check link"
+        >
+          Has Status Link
+        </button>
       </div>
 
       {loading && <p className="status">Loading...</p>}
@@ -219,7 +233,7 @@ export default function ApplicationsTab() {
                       {isEditing ? (
                         <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
                           className="inline-select">
-                          {ALL_STATUSES.map(s => <option key={s}>{s}</option>)}
+                          {ALL_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       ) : (
                         <span className="status-badge" style={{

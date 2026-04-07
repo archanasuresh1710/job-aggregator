@@ -43,6 +43,8 @@ Checking LinkedIn, Adzuna, and Naukri separately every day is tedious. This tool
 | Scheduler | Spring `@Scheduled` (every 4 hours) |
 | LinkedIn Scraping | Jsoup (HTML parser) |
 | Adzuna | Adzuna REST API (free tier) |
+| Reed UK | Reed REST API |
+| RSS | Rome (RSS/Atom feed parser) |
 | CSV Parsing | OpenCSV |
 | Build | Maven |
 | Frontend | React 18 + Vite |
@@ -71,8 +73,13 @@ job-aggregator/
 │       │   │   └── ApplicationRepository.java      # Filters + dedup check
 │       │   ├── service/
 │       │   │   ├── JobIngestionService.java        # Orchestrates all sources, deduplicates by URL
-│       │   │   ├── LinkedInService.java            # Scrapes LinkedIn guest jobs API via Jsoup
-│       │   │   ├── AdzunaService.java              # Calls Adzuna REST API, filters irrelevant titles
+│       │   │   ├── LinkedInService.java            # Scrapes LinkedIn guest jobs API via Jsoup (IN)
+│       │   │   ├── LinkedInRemoteService.java      # Scrapes LinkedIn for worldwide remote roles via Jsoup
+│       │   │   ├── AdzunaService.java              # Calls Adzuna REST API for IN jobs
+│       │   │   ├── AdzunaRemoteService.java        # Calls Adzuna API for remote/UK jobs
+│       │   │   ├── AdzunaUkService.java            # Calls Adzuna API for UK-specific jobs (wired separately)
+│       │   │   ├── ReedUkService.java              # Calls Reed REST API for UK jobs
+│       │   │   ├── RssFeedService.java             # Generic RSS/Atom feed parser (Rome-based)
 │       │   │   └── NaukriService.java              # Disabled — Naukri's internal API is unstable
 │       │   ├── scheduler/
 │       │   │   └── IngestionScheduler.java         # Triggers ingestion every 4 hours
@@ -113,8 +120,9 @@ job-aggregator/
 | company | VARCHAR(255) | |
 | location | VARCHAR(255) | |
 | url | TEXT UNIQUE | Used for deduplication |
-| source | VARCHAR(50) | `linkedin`, `adzuna` |
+| source | VARCHAR(50) | `linkedin`, `linkedin-remote`, `adzuna`, `adzuna-remote`, `reed-uk` |
 | domain | VARCHAR(50) | `fintech` or `other` |
+| country | VARCHAR(10) | `IN`, `GB`, `REMOTE` |
 | description | TEXT | |
 | skills | TEXT | Comma-separated extracted skills |
 | posted_date | TIMESTAMP | |
@@ -164,9 +172,13 @@ spring:
 adzuna:
   app-id: "your_adzuna_app_id"
   app-key: "your_adzuna_app_key"
+
+reed:
+  api-key: "your_reed_api_key"   # optional — skipped if not set
 ```
 
-Get free Adzuna API keys at [developer.adzuna.com](https://developer.adzuna.com).
+Get free Adzuna API keys at [developer.adzuna.com](https://developer.adzuna.com).  
+Get a Reed API key at [reed.co.uk/developers](https://www.reed.co.uk/developers/jobseeker).
 
 ### 3. Start the backend
 ```bash
@@ -211,11 +223,16 @@ Open the app and click **Fetch Now**, or wait for the scheduler to run (every 4 
 
 ## Job Sources
 
-| Source | Method | Notes |
-|---|---|---|
-| LinkedIn | Jsoup scraping of guest jobs API | No login required. May rate-limit. |
-| Adzuna | REST API | Free tier: 250 req/day. Requires API key. |
-| Naukri | Disabled | Internal API endpoint is unstable. |
+| Source | Method | Country | Notes |
+|---|---|---|---|
+| LinkedIn | Jsoup scraping of guest jobs API | IN | No login required. May rate-limit. |
+| LinkedIn Remote | Jsoup scraping (f_WT=2 remote filter) | REMOTE | Worldwide remote roles, mid-senior level. |
+| Adzuna | REST API | IN | Free tier: 250 req/day. Requires API key. |
+| Adzuna Remote | REST API | REMOTE | Remote/UK listings via same Adzuna key. |
+| Adzuna UK | REST API | GB | UK-specific listings (available, not wired into default ingestion). |
+| Reed UK | REST API | GB | Requires a Reed API key (`reed.api-key`). |
+| RSS | Generic RSS/Atom parser | Any | Utility — call `RssFeedService.fetchJobs(feedUrl, source)` with any feed. |
+| Naukri | Disabled | IN | Internal API endpoint is unstable. |
 
 ---
 
