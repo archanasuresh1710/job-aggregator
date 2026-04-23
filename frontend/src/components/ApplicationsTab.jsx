@@ -4,13 +4,14 @@ import AddApplicationModal from './AddApplicationModal'
 import ColumnFilter from './ColumnFilter'
 
 const STATUS_STYLES = {
-  'Awaiting':       { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
-  'Interview Round':{ bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
-  'Rejected':       { bg: '#fde8e8', color: '#c81e1e', border: '#fbd5d5' },
-  'No Callback':    { bg: '#f3f4f6', color: '#6b7280', border: '#e5e7eb' },
+  'Awaiting':           { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
+  'Interview Round':    { bg: '#fef3c7', color: '#b45309', border: '#fde68a' },
+  'Coding Assessment':  { bg: '#f3e8ff', color: '#7c3aed', border: '#a78bfa' },
+  'Rejected':           { bg: '#fde8e8', color: '#c81e1e', border: '#fbd5d5' },
+  'No Callback':        { bg: '#f3f4f6', color: '#6b7280', border: '#e5e7eb' },
 }
 
-const ALL_STATUSES = ['Awaiting', 'Interview Round', 'Rejected', 'No Callback']
+const ALL_STATUSES = ['Awaiting', 'Interview Round', 'Coding Assessment', 'Rejected', 'No Callback']
 const FILTERS = ['All', ...ALL_STATUSES]
 
 export default function ApplicationsTab() {
@@ -30,7 +31,6 @@ export default function ApplicationsTab() {
   const [editStatus, setEditStatus] = useState('')
   const [editInterview, setEditInterview] = useState('')
   const [editRemarks, setEditRemarks] = useState('')
-
   const loadCounts = async () => {
     const all = await getAllApplications()
     setCounts(ALL_STATUSES.reduce((acc, s) => {
@@ -39,7 +39,6 @@ export default function ApplicationsTab() {
     }, {}))
   }
 
-  // Unique options for column filters
   const interviewOptions = useMemo(() =>
     [...new Set(applications.map(a => a.interview || '').filter(Boolean))].sort()
   , [applications])
@@ -48,7 +47,6 @@ export default function ApplicationsTab() {
     [...new Set(applications.map(a => (a.location || '').trim()).filter(Boolean))].sort()
   , [applications])
 
-  // Apply column filters on top of backend-filtered results
   const visibleApplications = useMemo(() => applications.filter(a => {
     if (statusLinksOnly && !a.statusCheckUrl) return false
     if (interviewFilter.length > 0 && !interviewFilter.includes(a.interview || '')) return false
@@ -59,11 +57,8 @@ export default function ApplicationsTab() {
   const load = async () => {
     setLoading(true)
     try {
-      const data = await getApplications(
-        filter === 'All' ? null : filter,
-        company || null,
-        sort
-      )
+      const statusParam = filter === 'All' ? null : filter
+      const data = await getApplications(statusParam, company || null, sort)
       setApplications(data)
     } finally {
       setLoading(false)
@@ -113,7 +108,6 @@ export default function ApplicationsTab() {
     setApplications(prev => prev.filter(a => a.id !== id))
     loadCounts()
   }
-
 
   return (
     <div className="applications-tab">
@@ -176,7 +170,7 @@ export default function ApplicationsTab() {
       </div>
 
       {loading && <p className="status">Loading...</p>}
-      {!loading && applications.length === 0 && (
+      {!loading && visibleApplications.length === 0 && (
         <p className="status">No applications. Add one or import a CSV.</p>
       )}
 
@@ -198,14 +192,14 @@ export default function ApplicationsTab() {
                   />
                 </th>
                 <th>Status</th>
-                <th>
+                {filter !== 'Coding Assessment' && filter !== 'Interview Round' && <th>
                   <ColumnFilter
                     label="Interview"
                     options={interviewOptions}
                     selected={interviewFilter}
                     onChange={setInterviewFilter}
                   />
-                </th>
+                </th>}
                 <th>Via</th>
                 <th>Remarks</th>
                 <th></th>
@@ -243,7 +237,7 @@ export default function ApplicationsTab() {
                         </span>
                       )}
                     </td>
-                    <td>
+                    {filter !== 'Coding Assessment' && filter !== 'Interview Round' && <td>
                       {isEditing ? (
                         <select value={editInterview} onChange={e => setEditInterview(e.target.value)} className="inline-select">
                           <option value="">—</option>
@@ -252,7 +246,7 @@ export default function ApplicationsTab() {
                           <option>Coding Assessment</option>
                         </select>
                       ) : (app.interview || '—')}
-                    </td>
+                    </td>}
                     <td>{app.modeOfApplication || '—'}</td>
                     <td className="td-remarks">
                       {isEditing ? (

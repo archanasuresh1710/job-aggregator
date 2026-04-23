@@ -3,6 +3,8 @@ import FilterBar from './components/FilterBar'
 import JobCard from './components/JobCard'
 import ApplicationsTab from './components/ApplicationsTab'
 import AddApplicationModal from './components/AddApplicationModal'
+import MyDetailsTab from './components/MyDetailsTab'
+import { ProfileProvider } from './context/ProfileContext'
 import { getJobs, markSeen, toggleBookmark, triggerIngestion } from './api/jobs'
 
 export default function App() {
@@ -16,9 +18,7 @@ export default function App() {
   const [domain, setDomain] = useState(null)
   const [applyJob, setApplyJob] = useState(null)
 
-  const country = activeTab === 'global' ? 'GLOBAL'
-                : activeTab === 'remote' ? 'REMOTE'
-                : 'IN'
+  const country = activeTab === 'global' ? 'GLOBAL' : 'IN'
   const effectiveDomain = activeTab === 'global' ? 'fintech' : domain
   const sponsorship = activeTab === 'global'
 
@@ -96,6 +96,7 @@ export default function App() {
   )
 
   return (
+    <ProfileProvider>
     <div className="app">
       <header className="app-header">
         <h1>Job Aggregator</h1>
@@ -104,10 +105,6 @@ export default function App() {
             onClick={() => switchTab('feed')}>
             Job Feed {activeTab === 'feed' && <span className="tab-count">{jobs.length}</span>}
           </button>
-          <button className={`tab ${activeTab === 'remote' ? 'active' : ''}`}
-            onClick={() => switchTab('remote')}>
-            🌍 Remote {activeTab === 'remote' && <span className="tab-count">{jobs.length}</span>}
-          </button>
           <button className={`tab ${activeTab === 'global' ? 'active' : ''}`}
             onClick={() => switchTab('global')}>
             🌐 Global {activeTab === 'global' && <span className="tab-count">{jobs.length}</span>}
@@ -115,6 +112,10 @@ export default function App() {
           <button className={`tab ${activeTab === 'applied' ? 'active' : ''}`}
             onClick={() => setActiveTab('applied')}>
             Applied Jobs
+          </button>
+          <button className={`tab ${activeTab === 'details' ? 'active' : ''}`}
+            onClick={() => setActiveTab('details')}>
+            My Details
           </button>
         </div>
       </header>
@@ -153,17 +154,13 @@ export default function App() {
         </>
       )}
 
-      {activeTab === 'remote' && jobListSection(
-        '🌍 Remote Jobs — LinkedIn & Adzuna',
-        'No remote jobs yet. Click "Fetch Now" to pull from sources.'
-      )}
-
       {activeTab === 'global' && jobListSection(
         '🇬🇧 UK Fintech — Visa Sponsorship Only',
         'No matching jobs yet. Click "Fetch Now" to pull from sources.'
       )}
 
       {activeTab === 'applied' && <ApplicationsTab />}
+      {activeTab === 'details' && <MyDetailsTab />}
 
       {applyJob && (
         <AddApplicationModal
@@ -187,5 +184,6 @@ export default function App() {
         />
       )}
     </div>
+    </ProfileProvider>
   )
 }
