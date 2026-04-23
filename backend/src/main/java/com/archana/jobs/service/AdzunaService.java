@@ -13,7 +13,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.util.List;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
@@ -48,7 +47,21 @@ public class AdzunaService {
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
+    private static final List<String> REQUIRED_TITLE_KEYWORDS = List.of(
+            "java", "spring", "backend", "back end", "back-end", "software engineer",
+            "software developer", "sde", "sde2", "sde-2", "full stack", "fullstack",
+            "payment", "payments", "fintech"
+    );
+
     public List<Job> fetchJobs() {
+        return fetch(query, location);
+    }
+
+    public List<Job> fetchFintechIndia() {
+        return fetch("java fintech", null);
+    }
+
+    private List<Job> fetch(String queryParam, String locationParam) {
         List<Job> jobs = new ArrayList<>();
 
         if ("YOUR_APP_ID".equals(appId)) {
@@ -57,16 +70,18 @@ public class AdzunaService {
         }
 
         try {
-            String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(baseUrl)
                     .queryParam("app_id", appId)
                     .queryParam("app_key", appKey)
-                    .queryParam("what", query)
-                    .queryParam("where", location)
+                    .queryParam("what", queryParam)
                     .queryParam("results_per_page", resultsPerPage)
-                    .queryParam("sort_by", "date")
-                    .build()
-                    .encode()
-                    .toUriString();
+                    .queryParam("sort_by", "date");
+
+            if (locationParam != null && !locationParam.isBlank()) {
+                builder.queryParam("where", locationParam);
+            }
+
+            String url = builder.build().encode().toUriString();
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -85,11 +100,11 @@ public class AdzunaService {
             JsonNode results = root.path("results");
 
             for (JsonNode node : results) {
-                Job job = parseAdzunaJob(node);
+                Job job = parseAdzunaJob(node, locationParam);
                 if (job != null) jobs.add(job);
             }
 
-            log.info("Fetched {} jobs from Adzuna", jobs.size());
+            log.info("Fetched {} jobs from Adzuna (query={}, location={})", jobs.size(), queryParam, locationParam);
 
         } catch (Exception e) {
             log.error("Failed to fetch from Adzuna: {}", e.getMessage());
@@ -98,29 +113,23 @@ public class AdzunaService {
         return jobs;
     }
 
-    private static final List<String> REQUIRED_TITLE_KEYWORDS = List.of(
-            "java", "spring", "backend", "back end", "back-end", "software engineer",
-            "software developer", "sde", "sde2", "sde-2", "full stack", "fullstack",
-            "payment", "payments", "fintech"
-    );
-
     private boolean isRelevant(String title) {
         String lower = title.toLowerCase();
         return REQUIRED_TITLE_KEYWORDS.stream().anyMatch(lower::contains);
     }
 
-    private Job parseAdzunaJob(JsonNode node) {
+    private Job parseAdzunaJob(JsonNode node, String locationParam) {
         try {
             String url = node.path("redirect_url").asText(null);
             if (url == null || url.isBlank()) return null;
-            // Strip tracking params — same job gets different se= and v= each call
             if (url.contains("?")) url = url.substring(0, url.indexOf("?"));
 
             String title = node.path("title").asText("Unknown Title");
-
             if (!isRelevant(title)) return null;
+
             String company = node.path("company").path("display_name").asText("Unknown");
-            String locationName = node.path("location").path("display_name").asText("Bangalore");
+            String locationName = node.path("location").path("display_name").asText(
+                    locationParam != null ? locationParam : "India");
             String description = node.path("description").asText(null);
 
             LocalDateTime postedDate = null;

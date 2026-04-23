@@ -46,6 +46,7 @@ public class ApplicationController {
         return applicationRepository.findById(id).map(app -> {
             app.setStatus(body.get("status"));
             if (body.containsKey("company")) app.setCompany(body.get("company"));
+            if (body.containsKey("appliedDate")) app.setAppliedDate(body.get("appliedDate"));
             if (body.containsKey("remarks")) app.setRemarks(body.get("remarks"));
             if (body.containsKey("interview")) app.setInterview(body.get("interview"));
             return ResponseEntity.ok(applicationRepository.save(app));

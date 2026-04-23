@@ -15,25 +15,28 @@ export default function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [hideSeen, setHideSeen] = useState(true)
-  const [domain, setDomain] = useState(null)
+  const [feedView, setFeedView] = useState('bangalore')
   const [applyJob, setApplyJob] = useState(null)
 
   const country = activeTab === 'global' ? 'GLOBAL' : 'IN'
-  const effectiveDomain = activeTab === 'global' ? 'fintech' : domain
+  const effectiveDomain = activeTab === 'global' ? 'fintech'
+                        : (activeTab === 'feed' && feedView === 'fintech') ? 'fintech'
+                        : null
+  const locationFilter = activeTab === 'feed' && feedView === 'bangalore' ? 'bangalore' : null
   const sponsorship = activeTab === 'global'
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getJobs(keyword || null, source || null, effectiveDomain, hideSeen, country, sponsorship)
+      const data = await getJobs(keyword || null, source || null, effectiveDomain, hideSeen, country, sponsorship, locationFilter)
       setJobs(data)
     } catch {
       setError('Failed to load jobs. Is the backend running?')
     } finally {
       setLoading(false)
     }
-  }, [keyword, source, effectiveDomain, hideSeen, country, sponsorship])
+  }, [keyword, source, effectiveDomain, hideSeen, country, sponsorship, locationFilter])
 
   useEffect(() => {
     if (activeTab === 'applied') return
@@ -132,13 +135,14 @@ export default function App() {
             onToggleSeen={() => setHideSeen(h => !h)}
           />
           <div className="domain-tabs">
-            {[{ label: 'All', value: null }, { label: '💳 Fintech', value: 'fintech' }, { label: '🔧 Other', value: 'other' }].map(d => (
-              <button key={d.label}
-                className={`domain-tab ${domain === d.value ? 'active' : ''}`}
-                onClick={() => setDomain(d.value)}>
-                {d.label}
-              </button>
-            ))}
+            <button className={`domain-tab ${feedView === 'bangalore' ? 'active' : ''}`}
+              onClick={() => setFeedView('bangalore')}>
+              Bangalore
+            </button>
+            <button className={`domain-tab ${feedView === 'fintech' ? 'active' : ''}`}
+              onClick={() => setFeedView('fintech')}>
+              Fintech
+            </button>
           </div>
           <main className="job-list">
             {loading && <p className="status">Loading...</p>}

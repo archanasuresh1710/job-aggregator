@@ -29,6 +29,7 @@ export default function ApplicationsTab() {
   const [editingId, setEditingId] = useState(null)
   const [editCompany, setEditCompany] = useState('')
   const [editStatus, setEditStatus] = useState('')
+  const [editDate, setEditDate] = useState('')
   const [editInterview, setEditInterview] = useState('')
   const [editRemarks, setEditRemarks] = useState('')
   const loadCounts = async () => {
@@ -91,12 +92,13 @@ export default function ApplicationsTab() {
     setEditingId(app.id)
     setEditCompany(app.company || '')
     setEditStatus(app.status)
+    setEditDate(app.appliedDate || '')
     setEditInterview(app.interview || '')
     setEditRemarks(app.remarks || '')
   }
 
   const saveEdit = async (id) => {
-    const updated = await updateStatus(id, { company: editCompany, status: editStatus, interview: editInterview, remarks: editRemarks })
+    const updated = await updateStatus(id, { company: editCompany, status: editStatus, appliedDate: editDate, interview: editInterview, remarks: editRemarks })
     setApplications(prev => prev.map(a => a.id === id ? updated : a))
     setEditingId(null)
     loadCounts()
@@ -221,7 +223,12 @@ export default function ApplicationsTab() {
                         : app.company}
                     </td>
                     <td>{app.role || '—'}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{app.appliedDate || '—'}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      {isEditing ? (
+                        <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                          className="inline-input" />
+                      ) : (app.appliedDate || '—')}
+                    </td>
                     <td>{app.location || '—'}</td>
                     <td>
                       {isEditing ? (

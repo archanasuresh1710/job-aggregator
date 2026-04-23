@@ -34,7 +34,10 @@ public interface JobRepository extends JpaRepository<Job, Long> {
                  OR description ILIKE '%right to work%'
                  OR description ILIKE '%work visa%'
                  OR description ILIKE '%visa support%'))
+            AND (CAST(?7 AS text) IS NULL
+                 OR LOWER(location) LIKE LOWER('%' || ?7 || '%')
+                 OR (?7 = 'bangalore' AND LOWER(location) LIKE '%bengaluru%'))
             ORDER BY posted_date DESC NULLS LAST, ingested_at DESC
             """, nativeQuery = true)
-    List<Job> findByFilters(String keyword, String source, String domain, boolean hideSeen, String country, boolean sponsorship);
+    List<Job> findByFilters(String keyword, String source, String domain, boolean hideSeen, String country, boolean sponsorship, String location);
 }
