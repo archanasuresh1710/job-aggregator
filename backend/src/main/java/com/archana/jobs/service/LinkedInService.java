@@ -14,6 +14,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -24,13 +29,23 @@ public class LinkedInService {
             "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search" +
             "?keywords=Java+Spring+Boot+Fintech&location=Bangalore&f_TPR=r86400&f_E=4&start=0";
 
+    private static final String LINKEDIN_JOB_POSTING_URL =
+            "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/";
+
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/120.0.0.0 Safari/537.36";
+
+    // LinkedIn URLs end with "-<id>" where id is a 10-digit number, e.g.
+    // /jobs/view/senior-backend-engineer-at-73-strings-4406880004
+    private static final Pattern JOB_ID_PATTERN = Pattern.compile("(\\d{8,})(?:/|$)");
+
     public List<Job> fetchJobs() {
         List<Job> jobs = new ArrayList<>();
         try {
             Document doc = Jsoup.connect(LINKEDIN_GUEST_API)
-                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                               "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                               "Chrome/120.0.0.0 Safari/537.36")
+                    .userAgent(USER_AGENT)
                     .header("Accept-Language", "en-US,en;q=0.9")
                     .timeout(15000)
                     .get();
@@ -41,11 +56,83 @@ public class LinkedInService {
                 if (job != null) jobs.add(job);
             }
 
+            enrichWithFullDescriptions(jobs);
+
             log.info("Fetched {} jobs from LinkedIn", jobs.size());
         } catch (Exception e) {
             log.error("Failed to fetch LinkedIn jobs: {}", e.getMessage());
         }
         return jobs;
+    }
+
+    private void enrichWithFullDescriptions(List<Job> jobs) {
+        if (jobs.isEmpty()) return;
+        ExecutorService pool = Executors.newFixedThreadPool(Math.min(8, jobs.size()));
+        try {
+            for (Job job : jobs) {
+                pool.submit(() -> enrichOne(job));
+            }
+            pool.shutdown();
+            if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
+                log.warn("LinkedIn enrichment timed out; proceeding with partial data");
+                pool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            pool.shutdownNow();
+        }
+    }
+
+    private void enrichOne(Job job) {
+        String jobId = extractJobId(job.getUrl());
+        if (jobId == null) return;
+        try {
+            Document doc = Jsoup.connect(LINKEDIN_JOB_POSTING_URL + jobId)
+                    .userAgent(USER_AGENT)
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .timeout(15000)
+                    .get();
+
+            Element body = doc.selectFirst(".show-more-less-html__markup");
+            if (body == null) return;
+
+            String fullText = body.text().trim();
+            if (fullText.isBlank()) return;
+
+            String seniority = parseSeniority(doc);
+            String descriptionWithMeta = seniority != null
+                    ? "Seniority: " + seniority + "\n\n" + fullText
+                    : fullText;
+
+            if (descriptionWithMeta.length() > 5000) {
+                descriptionWithMeta = descriptionWithMeta.substring(0, 5000);
+            }
+
+            job.setDescription(descriptionWithMeta);
+            job.setSkills(SkillExtractor.extract(job.getTitle(), descriptionWithMeta));
+            job.setDomain(DomainClassifier.classify(job.getCompany(), job.getTitle(), descriptionWithMeta));
+        } catch (Exception e) {
+            log.debug("Full description fetch failed for LinkedIn job {}: {}", jobId, e.getMessage());
+        }
+    }
+
+    private String parseSeniority(Document doc) {
+        for (Element item : doc.select(".description__job-criteria-item")) {
+            Element header = item.selectFirst(".description__job-criteria-subheader");
+            Element value = item.selectFirst(".description__job-criteria-text");
+            if (header != null && value != null
+                    && header.text().trim().equalsIgnoreCase("Seniority level")) {
+                String text = value.text().trim();
+                return text.isBlank() ? null : text;
+            }
+        }
+        return null;
+    }
+
+    private String extractJobId(String url) {
+        if (url == null) return null;
+        Matcher m = JOB_ID_PATTERN.matcher(url);
+        return m.find() ? m.group(1) : null;
     }
 
     private Job parseJobCard(Element card) {

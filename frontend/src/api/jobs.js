@@ -2,8 +2,8 @@ import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api' })
 
-export const getJobs = (keyword, source, domain, hideSeen, country, sponsorship, location) =>
-  api.get('/jobs', { params: { keyword, source, domain, hideSeen, country, sponsorship, location } }).then(r => r.data)
+export const getJobs = (keyword, source, domain, hideSeen, location) =>
+  api.get('/jobs', { params: { keyword, source, domain, hideSeen, location } }).then(r => r.data)
 
 export const markSeen = (id) =>
   api.patch(`/jobs/${id}/seen`).then(r => r.data)

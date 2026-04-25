@@ -24,10 +24,8 @@ public class JobController {
             @RequestParam(required = false) String source,
             @RequestParam(required = false) String domain,
             @RequestParam(defaultValue = "true") boolean hideSeen,
-            @RequestParam(required = false) String country,
-            @RequestParam(defaultValue = "false") boolean sponsorship,
             @RequestParam(required = false) String location) {
-        return jobRepository.findByFilters(keyword, source, domain, hideSeen, country, sponsorship, location);
+        return jobRepository.findByFilters(keyword, source, domain, hideSeen, location);
     }
 
     @PatchMapping("/{id}/seen")

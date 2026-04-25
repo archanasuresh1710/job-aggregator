@@ -26,6 +26,8 @@ export default function ApplicationsTab() {
   const [interviewFilter, setInterviewFilter] = useState([])
   const [locationFilter, setLocationFilter] = useState([])
   const [statusLinksOnly, setStatusLinksOnly] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [editingId, setEditingId] = useState(null)
   const [editCompany, setEditCompany] = useState('')
   const [editStatus, setEditStatus] = useState('')
@@ -54,6 +56,14 @@ export default function ApplicationsTab() {
     if (locationFilter.length > 0 && !locationFilter.includes((a.location || '').trim())) return false
     return true
   }), [applications, interviewFilter, locationFilter, statusLinksOnly])
+
+  const totalPages = Math.ceil(visibleApplications.length / PAGE_SIZE)
+
+  const paginatedApplications = useMemo(() =>
+    visibleApplications.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  , [visibleApplications, page])
+
+  useEffect(() => { setPage(1) }, [filter, company, sort, interviewFilter, locationFilter, statusLinksOnly])
 
   const load = async () => {
     setLoading(true)
@@ -208,12 +218,12 @@ export default function ApplicationsTab() {
               </tr>
             </thead>
             <tbody>
-              {visibleApplications.map((app, i) => {
+              {paginatedApplications.map((app, i) => {
                 const style = STATUS_STYLES[app.status] || STATUS_STYLES['No Callback']
                 const isEditing = editingId === app.id
                 return (
                   <tr key={app.id}>
-                    <td>{i + 1}</td>
+                    <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="td-company">
                       {isEditing ? (
                         <input value={editCompany} onChange={e => setEditCompany(e.target.value)}
@@ -281,6 +291,16 @@ export default function ApplicationsTab() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1}>← Prev</button>
+          <span className="page-info">
+            Page {page} of {totalPages} &nbsp;·&nbsp; {visibleApplications.length} jobs
+          </span>
+          <button className="page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>Next →</button>
         </div>
       )}
 

@@ -18,28 +18,24 @@ export default function App() {
   const [feedView, setFeedView] = useState('bangalore')
   const [applyJob, setApplyJob] = useState(null)
 
-  const country = activeTab === 'global' ? 'GLOBAL' : 'IN'
-  const effectiveDomain = activeTab === 'global' ? 'fintech'
-                        : (activeTab === 'feed' && feedView === 'fintech') ? 'fintech'
-                        : null
-  const locationFilter = activeTab === 'feed' && feedView === 'bangalore' ? 'bangalore' : null
-  const sponsorship = activeTab === 'global'
+  const effectiveDomain = feedView === 'fintech' ? 'fintech' : null
+  const locationFilter = feedView === 'bangalore' ? 'bangalore' : null
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getJobs(keyword || null, source || null, effectiveDomain, hideSeen, country, sponsorship, locationFilter)
+      const data = await getJobs(keyword || null, source || null, effectiveDomain, hideSeen, locationFilter)
       setJobs(data)
     } catch {
       setError('Failed to load jobs. Is the backend running?')
     } finally {
       setLoading(false)
     }
-  }, [keyword, source, effectiveDomain, hideSeen, country, sponsorship, locationFilter])
+  }, [keyword, source, effectiveDomain, hideSeen, locationFilter])
 
   useEffect(() => {
-    if (activeTab === 'applied') return
+    if (activeTab !== 'feed') return
     const delay = setTimeout(fetchJobs, 400)
     return () => clearTimeout(delay)
   }, [fetchJobs, activeTab])
@@ -69,35 +65,6 @@ export default function App() {
     setSource('')
   }
 
-  const jobListSection = (badge, emptyMsg) => (
-    <>
-      <FilterBar
-        keyword={keyword}
-        source={source}
-        onKeywordChange={setKeyword}
-        onSourceChange={setSource}
-        onIngest={handleIngest}
-        hideSeen={hideSeen}
-        onToggleSeen={() => setHideSeen(h => !h)}
-      />
-      {badge && <div className="global-badge">{badge}</div>}
-      <main className="job-list">
-        {loading && <p className="status">Loading...</p>}
-        {error && <p className="status error">{error}</p>}
-        {!loading && !error && jobs.length === 0 && <p className="status">{emptyMsg}</p>}
-        {jobs.map(job => (
-          <JobCard
-            key={job.id}
-            job={job}
-            onSeen={handleSeen}
-            onBookmark={handleBookmark}
-            onApply={setApplyJob}
-          />
-        ))}
-      </main>
-    </>
-  )
-
   return (
     <ProfileProvider>
     <div className="app">
@@ -107,10 +74,6 @@ export default function App() {
           <button className={`tab ${activeTab === 'feed' ? 'active' : ''}`}
             onClick={() => switchTab('feed')}>
             Job Feed {activeTab === 'feed' && <span className="tab-count">{jobs.length}</span>}
-          </button>
-          <button className={`tab ${activeTab === 'global' ? 'active' : ''}`}
-            onClick={() => switchTab('global')}>
-            🌐 Global {activeTab === 'global' && <span className="tab-count">{jobs.length}</span>}
           </button>
           <button className={`tab ${activeTab === 'applied' ? 'active' : ''}`}
             onClick={() => setActiveTab('applied')}>
@@ -156,11 +119,6 @@ export default function App() {
             ))}
           </main>
         </>
-      )}
-
-      {activeTab === 'global' && jobListSection(
-        '🇬🇧 UK Fintech — Visa Sponsorship Only',
-        'No matching jobs yet. Click "Fetch Now" to pull from sources.'
       )}
 
       {activeTab === 'applied' && <ApplicationsTab />}

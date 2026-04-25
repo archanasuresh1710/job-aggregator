@@ -17,7 +17,6 @@ public class JobIngestionService {
     private final JobRepository jobRepository;
     private final AdzunaService adzunaService;
     private final LinkedInService linkedInService;
-    private final ReedUkService reedUkService;
     private final RemotiveService remotiveService;
 
     public void ingestAll() {
@@ -27,7 +26,6 @@ public class JobIngestionService {
         newJobsCount.addAndGet(saveNew(linkedInService.fetchJobs(), "linkedin"));
         newJobsCount.addAndGet(saveNew(adzunaService.fetchJobs(), "adzuna"));
         newJobsCount.addAndGet(saveNew(adzunaService.fetchFintechIndia(), "adzuna"));
-        newJobsCount.addAndGet(saveNew(reedUkService.fetchJobs(), "reed-uk"));
         newJobsCount.addAndGet(saveNew(remotiveService.fetchJobs(), "remotive"));
 
         log.info("Ingestion complete. {} new jobs saved.", newJobsCount.get());

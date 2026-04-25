@@ -596,6 +596,35 @@ body {
   margin-bottom: 12px;
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 12px 0;
+}
+
+.page-btn {
+  padding: 7px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #0f3460;
+}
+
+.page-btn:hover:not(:disabled) { background: #f3f4f6; }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+
+.page-info {
+  font-size: 13px;
+  color: #6b7280;
+}
+
 /* My Details Tab */
 .my-details-tab {
   background: white;
