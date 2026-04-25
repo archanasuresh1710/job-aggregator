@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -46,6 +49,14 @@ public class AdzunaService {
     private int resultsPerPage;
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
+
+    private static final String USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/120.0.0.0 Safari/537.36";
+
+    /** Throttle between detail-page fetches — Adzuna rate-limits per IP. */
+    private static final long ENRICH_DELAY_MS = 1000;
 
     private static final List<String> REQUIRED_TITLE_KEYWORDS = List.of(
             "java", "spring", "backend", "back end", "back-end", "software engineer",
@@ -113,6 +124,100 @@ public class AdzunaService {
         return jobs;
     }
 
+    /**
+     * Adzuna's API only returns a ~300-500 char snippet. The detail page at
+     * adzuna.in/details/{id} embeds the full description in a JS object
+     * (`window["az_details"] = {...}`). Scrape it and replace the snippet so
+     * the matching service has the full requirements section to work with.
+     *
+     * Public so the ingestion pipeline can call this AFTER deduping against
+     * the DB — no point spending 1s/job enriching duplicates we'll discard.
+     */
+    public void enrichWithFullDescriptions(List<Job> jobs) {
+        int upgraded = 0;
+        for (Job job : jobs) {
+            try {
+                if (enrichOne(job)) upgraded++;
+                Thread.sleep(ENRICH_DELAY_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (upgraded > 0) {
+            log.info("Adzuna enrichment upgraded {}/{} descriptions to full text", upgraded, jobs.size());
+        }
+    }
+
+    /** Returns true if we successfully replaced the snippet with the full description. */
+    private boolean enrichOne(Job job) {
+        String url = job.getUrl();
+        if (url == null || !url.contains("adzuna.")) return false;
+        try {
+            Document doc = Jsoup.connect(url)
+                    .userAgent(USER_AGENT)
+                    .header("Accept-Language", "en-US,en;q=0.9")
+                    .timeout(15000)
+                    .get();
+
+            for (Element script : doc.select("script")) {
+                String code = script.html();
+                if (!code.contains("\"az_details\"")) continue;
+
+                int eq = code.indexOf("window[\"az_details\"]");
+                if (eq < 0) continue;
+                int braceStart = code.indexOf('{', eq);
+                int braceEnd = findMatchingBrace(code, braceStart);
+                if (braceStart < 0 || braceEnd < 0) continue;
+
+                JsonNode obj = objectMapper.readTree(code.substring(braceStart, braceEnd + 1));
+                String fullDesc = obj.path("description").asText(null);
+                if (fullDesc == null || fullDesc.isBlank()) return false;
+
+                // Adzuna's description field can contain HTML tags (e.g. <h1>, <b>, <ul>, <br>).
+                // Jsoup.parse(text).text() strips tags and decodes entities cleanly.
+                fullDesc = Jsoup.parse(fullDesc).text();
+
+                if (fullDesc.length() > 5000) fullDesc = fullDesc.substring(0, 5000);
+
+                job.setDescription(fullDesc);
+                job.setSkills(SkillExtractor.extract(job.getTitle(), fullDesc));
+                job.setDomain(DomainClassifier.classify(job.getCompany(), job.getTitle(), fullDesc));
+                return true;
+            }
+        } catch (Exception e) {
+            log.debug("Adzuna detail-page fetch failed for {}: {}", url, e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Find the matching close-brace, respecting JSON string literals.
+     * Returns -1 if unbalanced.
+     */
+    private int findMatchingBrace(String s, int start) {
+        if (start < 0 || start >= s.length() || s.charAt(start) != '{') return -1;
+        int depth = 0;
+        boolean inString = false;
+        boolean escape = false;
+        for (int i = start; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (escape) { escape = false; continue; }
+            if (inString) {
+                if (c == '\\') escape = true;
+                else if (c == '"') inString = false;
+                continue;
+            }
+            if (c == '"') inString = true;
+            else if (c == '{') depth++;
+            else if (c == '}') {
+                depth--;
+                if (depth == 0) return i;
+            }
+        }
+        return -1;
+    }
+
     private boolean isRelevant(String title) {
         String lower = title.toLowerCase();
         return REQUIRED_TITLE_KEYWORDS.stream().anyMatch(lower::contains);
@@ -131,6 +236,9 @@ public class AdzunaService {
             String locationName = node.path("location").path("display_name").asText(
                     locationParam != null ? locationParam : "India");
             String description = node.path("description").asText(null);
+            if (description != null && !description.isBlank()) {
+                description = Jsoup.parse(description).text();
+            }
 
             LocalDateTime postedDate = null;
             String created = node.path("created").asText(null);

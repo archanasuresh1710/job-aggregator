@@ -17,6 +17,13 @@ public interface JobRepository extends JpaRepository<Job, Long> {
 
     @Query(value = """
             SELECT * FROM jobs
+            WHERE match_score IS NULL
+            AND is_seen = false
+            """, nativeQuery = true)
+    List<Job> findScoringCandidates();
+
+    @Query(value = """
+            SELECT * FROM jobs
             WHERE (CAST(?1 AS text) IS NULL
                    OR LOWER(title) LIKE LOWER('%' || ?1 || '%')
                    OR LOWER(company) LIKE LOWER('%' || ?1 || '%'))
@@ -27,7 +34,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             AND (CAST(?5 AS text) IS NULL
                  OR LOWER(location) LIKE LOWER('%' || ?5 || '%')
                  OR (?5 = 'bangalore' AND LOWER(location) LIKE '%bengaluru%'))
-            ORDER BY posted_date DESC NULLS LAST, ingested_at DESC
+            ORDER BY match_score DESC NULLS LAST,
+                     posted_date DESC NULLS LAST,
+                     ingested_at DESC
             """, nativeQuery = true)
     List<Job> findByFilters(String keyword, String source, String domain, boolean hideSeen, String location);
 }

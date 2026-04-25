@@ -549,7 +549,7 @@ body {
 
 .job-actions { display: flex; gap: 10px; }
 
-.btn-seen, .btn-bookmark {
+.btn-seen, .btn-bookmark, .btn-rescore {
   padding: 7px 14px;
   border-radius: 6px;
   font-size: 13px;
@@ -563,6 +563,9 @@ body {
 .btn-seen:hover:not(:disabled) { background: #e8f0fe; }
 .btn-seen:disabled { color: #aaa; cursor: default; }
 .btn-bookmark:hover { background: #fff3e0; }
+.btn-rescore { border-color: #c7d2fe; color: #4338ca; }
+.btn-rescore:hover:not(:disabled) { background: #eef2ff; }
+.btn-rescore:disabled { opacity: 0.6; cursor: wait; }
 .btn-apply {
   background: none;
   color: #15803d;
@@ -724,4 +727,216 @@ body {
   display: flex;
   gap: 10px;
   margin-top: 20px;
+}
+
+.resume-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.resume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.resume-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.btn-upload.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.resume-summary-card {
+  margin-top: 16px;
+  padding: 18px 20px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.resume-summary-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.resume-filename {
+  font-weight: 600;
+  color: #111827;
+}
+
+.resume-uploaded-at {
+  color: #6b7280;
+}
+
+.resume-summary-text {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.resume-fact-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.resume-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resume-fact-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.resume-fact-value {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.resume-skills .skills-list {
+  margin-top: 6px;
+}
+
+.resume-edit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.resume-summary-card .detail-actions {
+  margin-top: 16px;
+}
+
+/* ── Job match scoring (Stage C) ── */
+
+.job-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.score-good {
+  background: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+.score-stretch {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.score-pass {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.score-unscored {
+  background: #f3f4f6;
+  color: #6b7280;
+  border-color: #e5e7eb;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.exp-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.exp-match {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+.exp-stretch {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.exp-hard-pass {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+.exp-over {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+.exp-unknown {
+  background: #f9fafb;
+  color: #6b7280;
+  border-color: #e5e7eb;
+}
+
+.match-rationale {
+  margin: 6px 0 8px 0;
+  font-size: 13px;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.match-skills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.skill-matched {
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #6ee7b7 !important;
+}
+
+.skill-missing {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border-color: #e5e7eb !important;
+  text-decoration: line-through;
+  text-decoration-color: #d1d5db;
 }

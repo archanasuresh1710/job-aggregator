@@ -5,7 +5,7 @@ import ApplicationsTab from './components/ApplicationsTab'
 import AddApplicationModal from './components/AddApplicationModal'
 import MyDetailsTab from './components/MyDetailsTab'
 import { ProfileProvider } from './context/ProfileContext'
-import { getJobs, markSeen, toggleBookmark, triggerIngestion } from './api/jobs'
+import { getJobs, markSeen, toggleBookmark, triggerIngestion, rescoreJob } from './api/jobs'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('feed')
@@ -51,6 +51,11 @@ export default function App() {
 
   const handleBookmark = async (id) => {
     const updated = await toggleBookmark(id)
+    setJobs(prev => prev.map(j => j.id === id ? updated : j))
+  }
+
+  const handleRescore = async (id) => {
+    const updated = await rescoreJob(id)
     setJobs(prev => prev.map(j => j.id === id ? updated : j))
   }
 
@@ -115,7 +120,8 @@ export default function App() {
             )}
             {jobs.map(job => (
               <JobCard key={job.id} job={job}
-                onSeen={handleSeen} onBookmark={handleBookmark} onApply={setApplyJob} />
+                onSeen={handleSeen} onBookmark={handleBookmark}
+                onApply={setApplyJob} onRescore={handleRescore} />
             ))}
           </main>
         </>

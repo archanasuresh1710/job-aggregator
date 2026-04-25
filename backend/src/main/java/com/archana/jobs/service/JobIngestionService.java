@@ -6,8 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -18,29 +18,58 @@ public class JobIngestionService {
     private final AdzunaService adzunaService;
     private final LinkedInService linkedInService;
     private final RemotiveService remotiveService;
+    private final JobMatchingService jobMatchingService;
 
     public void ingestAll() {
         log.info("Starting job ingestion...");
-        AtomicInteger newJobsCount = new AtomicInteger(0);
 
-        newJobsCount.addAndGet(saveNew(linkedInService.fetchJobs(), "linkedin"));
-        newJobsCount.addAndGet(saveNew(adzunaService.fetchJobs(), "adzuna"));
-        newJobsCount.addAndGet(saveNew(adzunaService.fetchFintechIndia(), "adzuna"));
-        newJobsCount.addAndGet(saveNew(remotiveService.fetchJobs(), "remotive"));
+        List<Job> newlySaved = new ArrayList<>();
 
-        log.info("Ingestion complete. {} new jobs saved.", newJobsCount.get());
+        // LinkedIn enriches inline in fetchJobs (parallel, fast). Just dedup + save.
+        newlySaved.addAll(saveNew(linkedInService.fetchJobs(), "linkedin"));
+
+        // Adzuna: enrich AFTER dedup so we don't waste 1s/job on duplicates we'd discard.
+        newlySaved.addAll(saveAdzuna(adzunaService.fetchJobs()));
+        newlySaved.addAll(saveAdzuna(adzunaService.fetchFintechIndia()));
+
+        newlySaved.addAll(saveNew(remotiveService.fetchJobs(), "remotive"));
+
+        log.info("Ingestion complete. {} new jobs saved.", newlySaved.size());
+
+        if (!newlySaved.isEmpty()) {
+            int scored = jobMatchingService.scoreJobs(newlySaved);
+            log.info("Match scoring: {}/{} new jobs scored.", scored, newlySaved.size());
+        }
     }
 
-    private int saveNew(List<Job> jobs, String source) {
-        int saved = 0;
+    /** Plain dedup + save (jobs already enriched, or source has no enrichment). */
+    private List<Job> saveNew(List<Job> jobs, String source) {
+        List<Job> newOnes = filterNew(jobs);
+        List<Job> saved = new ArrayList<>(newOnes.size());
+        for (Job job : newOnes) saved.add(jobRepository.save(job));
+        log.info("Saved {}/{} new jobs from {}", saved.size(), jobs.size(), source);
+        return saved;
+    }
+
+    /** Adzuna: dedup → enrich only the new ones → save. */
+    private List<Job> saveAdzuna(List<Job> jobs) {
+        List<Job> newOnes = filterNew(jobs);
+        log.info("Adzuna: {} new of {} fetched — enriching only new ones", newOnes.size(), jobs.size());
+        if (!newOnes.isEmpty()) {
+            adzunaService.enrichWithFullDescriptions(newOnes);
+        }
+        List<Job> saved = new ArrayList<>(newOnes.size());
+        for (Job job : newOnes) saved.add(jobRepository.save(job));
+        log.info("Saved {}/{} new jobs from adzuna", saved.size(), jobs.size());
+        return saved;
+    }
+
+    private List<Job> filterNew(List<Job> jobs) {
+        List<Job> out = new ArrayList<>();
         for (Job job : jobs) {
             if (job.getUrl() == null) continue;
-            if (!jobRepository.existsByUrl(job.getUrl())) {
-                jobRepository.save(job);
-                saved++;
-            }
+            if (!jobRepository.existsByUrl(job.getUrl())) out.add(job);
         }
-        log.info("Saved {}/{} new jobs from {}", saved, jobs.size(), source);
-        return saved;
+        return out;
     }
 }

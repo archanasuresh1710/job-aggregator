@@ -57,4 +57,30 @@ public class Job {
 
     @Builder.Default
     private Boolean isBookmarked = false;
+
+    // ── Match scoring (computed by Claude against the user's resume) ──
+
+    private Integer matchScore;          // final 0-100, after experience-gating
+
+    private Integer matchSkillScore;     // raw 0-100 from skill overlap
+
+    @Column(columnDefinition = "TEXT")
+    private String matchedSkills;        // comma-separated, intersect with resume
+
+    @Column(columnDefinition = "TEXT")
+    private String missingSkills;        // comma-separated, in JD but not in resume
+
+    private Integer yearsRequiredMin;    // null = unknown
+
+    private Integer yearsRequiredMax;    // null = unknown / open
+
+    @Column(length = 20)
+    private String experienceFit;        // 'match' | 'underqualified' | 'overqualified' | 'unknown'
+
+    private Integer experienceGapYears;  // years short (0 if not underqualified)
+
+    @Column(columnDefinition = "TEXT")
+    private String matchRationale;       // 1-line "why this score"
+
+    private LocalDateTime matchComputedAt;
 }

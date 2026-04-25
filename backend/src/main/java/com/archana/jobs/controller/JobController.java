@@ -3,6 +3,7 @@ package com.archana.jobs.controller;
 import com.archana.jobs.model.Job;
 import com.archana.jobs.repository.JobRepository;
 import com.archana.jobs.service.JobIngestionService;
+import com.archana.jobs.service.JobMatchingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ public class JobController {
 
     private final JobRepository jobRepository;
     private final JobIngestionService jobIngestionService;
+    private final JobMatchingService jobMatchingService;
 
     @GetMapping
     public List<Job> getJobs(
@@ -49,5 +51,22 @@ public class JobController {
     public ResponseEntity<String> triggerIngestion() {
         jobIngestionService.ingestAll();
         return ResponseEntity.ok("Ingestion triggered.");
+    }
+
+    // Manual trigger to score (or re-score) all jobs against the current resume
+    @GetMapping("/score-all")
+    public ResponseEntity<String> scoreAll() {
+        jobMatchingService.rescoreAllAsync();
+        return ResponseEntity.ok("Re-score started in background. Refresh in a minute or two.");
+    }
+
+    // Per-job rescore — synchronous, returns the updated Job once Claude finishes.
+    // Useful for filling in jobs that timed out during a batch run.
+    @PostMapping("/{id}/rescore")
+    public ResponseEntity<Job> rescoreJob(@PathVariable Long id) {
+        return jobRepository.findById(id).map(job -> {
+            jobMatchingService.scoreJobs(List.of(job));
+            return ResponseEntity.ok(jobRepository.findById(id).orElse(job));
+        }).orElse(ResponseEntity.notFound().build());
     }
 }

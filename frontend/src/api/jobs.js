@@ -13,3 +13,6 @@ export const toggleBookmark = (id) =>
 
 export const triggerIngestion = () =>
   api.post('/jobs/ingest').then(r => r.data)
+
+export const rescoreJob = (id) =>
+  api.post(`/jobs/${id}/rescore`, null, { timeout: 300000 }).then(r => r.data)

@@ -25,9 +25,10 @@ import java.util.regex.Pattern;
 public class LinkedInService {
 
     // f_E=4 → Mid-Senior level (matches 5+ years experience)
+    // f_TPR=r604800 → posted in the last 7 days (7 × 86400s)
     private static final String LINKEDIN_GUEST_API =
             "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search" +
-            "?keywords=Java+Spring+Boot+Fintech&location=Bangalore&f_TPR=r86400&f_E=4&start=0";
+            "?keywords=Java+Spring+Boot+Fintech&location=Bangalore&f_TPR=r604800&f_E=4&start=0";
 
     private static final String LINKEDIN_JOB_POSTING_URL =
             "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/";
