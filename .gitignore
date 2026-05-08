@@ -2,6 +2,7 @@
 backend/target/
 backend/.mvn/
 backend/*.class
+backend/.claude/
 
 # Application config with secrets — copy application.yml.example instead
 backend/src/main/resources/application.yml
@@ -18,6 +19,7 @@ frontend/dist/
 *.iml
 .vscode/
 *.DS_Store
+.claude/
 
 # Logs
 *.log

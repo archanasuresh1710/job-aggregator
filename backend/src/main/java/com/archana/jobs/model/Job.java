@@ -70,6 +70,9 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String missingSkills;        // comma-separated, in JD but not in resume
 
+    @Column(columnDefinition = "TEXT")
+    private String criticalMissingSkills; // comma-separated, JD-imperative skills the resume lacks
+
     private Integer yearsRequiredMin;    // null = unknown
 
     private Integer yearsRequiredMax;    // null = unknown / open

@@ -101,55 +101,57 @@ export default function MyDetailsTab() {
   }
 
   return (
-    <div className="my-details-tab">
-      <div className="my-details-header">
-        <h2>My Details</h2>
-        {!editing && (
-          <button className="btn-add" onClick={startEdit}>Edit</button>
-        )}
-      </div>
-      <p className="my-details-hint">Quick-copy your details while filling job applications.</p>
-
-      <div className="details-grid">
-        {FIELDS.map(({ key, label }) => (
-          <div key={key} className="detail-row">
-            <span className="detail-label">{label}</span>
-            {editing ? (
-              <input
-                className="inline-input detail-input"
-                value={draft[key] || ''}
-                onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))}
-                placeholder={`Enter ${label.toLowerCase()}...`}
-              />
-            ) : (
-              <span className="detail-value">{profile[key] || <span className="detail-empty">—</span>}</span>
-            )}
-            {!editing && (
-              <button
-                className={`btn-copy ${copied === key ? 'copied' : ''}`}
-                onClick={() => handleCopy(key, profile[key])}
-                disabled={!profile[key]}
-                title={`Copy ${label}`}
-              >
-                {copied === key ? 'Copied!' : 'Copy'}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {editing && (
-        <div className="detail-actions">
-          <button className="btn-action save" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-          <button className="btn-action cancel" onClick={cancelEdit}>Cancel</button>
+    <div className="my-details-split">
+      <section className="details-pane">
+        <div className="my-details-header">
+          <h2>My Details</h2>
+          {!editing && (
+            <button className="btn-add" onClick={startEdit}>Edit</button>
+          )}
         </div>
-      )}
+        <p className="my-details-hint">Quick-copy your details while filling job applications.</p>
 
-      <div className="resume-section">
-        <div className="resume-header">
-          <h3>Resume Analysis</h3>
+        <div className="details-grid">
+          {FIELDS.map(({ key, label }) => (
+            <div key={key} className="detail-row">
+              <span className="detail-label">{label}</span>
+              {editing ? (
+                <input
+                  className="inline-input detail-input"
+                  value={draft[key] || ''}
+                  onChange={e => setDraft(d => ({ ...d, [key]: e.target.value }))}
+                  placeholder={`Enter ${label.toLowerCase()}...`}
+                />
+              ) : (
+                <span className="detail-value">{profile[key] || <span className="detail-empty">—</span>}</span>
+              )}
+              {!editing && (
+                <button
+                  className={`btn-copy ${copied === key ? 'copied' : ''}`}
+                  onClick={() => handleCopy(key, profile[key])}
+                  disabled={!profile[key]}
+                  title={`Copy ${label}`}
+                >
+                  {copied === key ? 'Copied!' : 'Copy'}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {editing && (
+          <div className="detail-actions">
+            <button className="btn-action save" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button className="btn-action cancel" onClick={cancelEdit}>Cancel</button>
+          </div>
+        )}
+      </section>
+
+      <section className="details-pane">
+        <div className="my-details-header">
+          <h2>Resume Analysis</h2>
           <div style={{ display: 'flex', gap: 8 }}>
             {profile.resumeFilename && !resumeEditing && (
               <button className="btn-add" onClick={startResumeEdit}>Edit</button>
@@ -183,7 +185,6 @@ export default function MyDetailsTab() {
               )}
             </div>
 
-            {/* Summary */}
             {resumeEditing ? (
               <div className="resume-edit-row">
                 <span className="resume-fact-label">Summary</span>
@@ -199,7 +200,6 @@ export default function MyDetailsTab() {
             )}
 
             <div className="resume-fact-row">
-              {/* Experience */}
               <div className="resume-fact">
                 <span className="resume-fact-label">Experience</span>
                 {resumeEditing ? (
@@ -219,7 +219,6 @@ export default function MyDetailsTab() {
                 )}
               </div>
 
-              {/* Seniority */}
               <div className="resume-fact">
                 <span className="resume-fact-label">Seniority</span>
                 {resumeEditing ? (
@@ -236,7 +235,6 @@ export default function MyDetailsTab() {
                 )}
               </div>
 
-              {/* Stack */}
               <div className="resume-fact" style={{ flex: 1, minWidth: 200 }}>
                 <span className="resume-fact-label">Stack</span>
                 {resumeEditing ? (
@@ -251,7 +249,6 @@ export default function MyDetailsTab() {
               </div>
             </div>
 
-            {/* Skills */}
             <div className="resume-skills">
               <span className="resume-fact-label">Skills</span>
               {resumeEditing ? (
@@ -283,7 +280,7 @@ export default function MyDetailsTab() {
         ) : (
           <p className="status">No resume uploaded yet.</p>
         )}
-      </div>
+      </section>
     </div>
   )
 }

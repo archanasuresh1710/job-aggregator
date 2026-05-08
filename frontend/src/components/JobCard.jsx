@@ -1,12 +1,24 @@
 import React, { useState } from 'react'
 import { useProfile } from '../context/ProfileContext'
 
+function scoreTier(score) {
+  if (score == null) return 'unscored'
+  if (score >= 61) return 'good'
+  if (score >= 26) return 'stretch'
+  return 'pass'
+}
+
 function ScoreBadge({ score }) {
+  const tier = scoreTier(score)
   if (score == null) {
-    return <span className="score-badge score-unscored" title="Not yet scored against your resume">Not scored</span>
+    return <span className="score-badge score-lg score-unscored" title="Not yet scored against your resume">Not scored</span>
   }
-  const cls = score >= 61 ? 'score-good' : score >= 26 ? 'score-stretch' : 'score-pass'
-  return <span className={`score-badge ${cls}`} title="Match score (0-100)">{score}% match</span>
+  return (
+    <span className={`score-badge score-lg score-${tier}`} title="How well this job matches your uploaded resume (0-100)">
+      <span className="score-value">{score}%</span>
+      <span className="score-caption">resume match</span>
+    </span>
+  )
 }
 
 function ExperiencePill({ job, userYears }) {
@@ -38,10 +50,11 @@ function ExperiencePill({ job, userYears }) {
   return null
 }
 
-export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore }) {
+export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore, isFocused = false }) {
   const { profile } = useProfile()
   const userYears = profile?.resumeYearsOfExperience
   const [rescoring, setRescoring] = useState(false)
+  const tier = scoreTier(job.matchScore)
 
   const handleRescoreClick = async () => {
     if (rescoring) return
@@ -61,30 +74,37 @@ export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore })
 
   const isScored = job.matchScore != null
   const matchedSkills = (job.matchedSkills || '').split(',').map(s => s.trim()).filter(Boolean)
-  const missingSkills = (job.missingSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const allMissing = (job.missingSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const criticalMissing = (job.criticalMissingSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const criticalSet = new Set(criticalMissing.map(s => s.toLowerCase()))
+  const niceToHaveMissing = allMissing.filter(s => !criticalSet.has(s.toLowerCase()))
   const fallbackSkills = (job.skills || '').split(',').map(s => s.trim()).filter(Boolean)
 
   return (
-    <div className={`job-card ${job.isSeen ? 'seen' : ''}`}>
+    <div
+      data-job-id={job.id}
+      className={`job-card tier-${tier} ${job.isSeen ? 'seen' : ''} ${isFocused ? 'focused' : ''}`}
+    >
       <div className="job-card-header">
-        <div className="job-card-header-left">
-          <ScoreBadge score={job.matchScore} />
-          <ExperiencePill job={job} userYears={userYears} />
-          <span className={`source-badge source-${job.source}`}>{job.source}</span>
+        <div className="job-card-header-main">
+          <h3 className="job-title">
+            <a href={job.url} target="_blank" rel="noopener noreferrer">
+              {job.title}
+            </a>
+          </h3>
+          <div className="job-meta">
+            <span>{job.company}</span>
+            <span>{job.location}</span>
+            <span>{postedDate}</span>
+            <ExperiencePill job={job} userYears={userYears} />
+          </div>
         </div>
-        {job.isBookmarked && <span className="bookmark-indicator">Bookmarked</span>}
+        <ScoreBadge score={job.matchScore} />
       </div>
 
-      <h3 className="job-title">
-        <a href={job.url} target="_blank" rel="noopener noreferrer">
-          {job.title}
-        </a>
-      </h3>
-
-      <div className="job-meta">
-        <span>{job.company}</span>
-        <span>{job.location}</span>
-        <span>{postedDate}</span>
+      <div className="job-card-tags">
+        <span className={`source-badge source-${job.source}`}>{job.source}</span>
+        {job.isBookmarked && <span className="bookmark-indicator">★ Bookmarked</span>}
       </div>
 
       {isScored && job.matchRationale && (
@@ -100,9 +120,17 @@ export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore })
               ))}
             </div>
           )}
-          {missingSkills.length > 0 && (
+          {criticalMissing.length > 0 && (
             <div className="skills-list">
-              {missingSkills.map(s => (
+              <span className="skills-label skills-label-critical">Required, missing:</span>
+              {criticalMissing.map(s => (
+                <span key={`c-${s}`} className="skill-tag skill-critical" title="The JD treats this as required and your resume doesn't list it">{s}</span>
+              ))}
+            </div>
+          )}
+          {niceToHaveMissing.length > 0 && (
+            <div className="skills-list">
+              {niceToHaveMissing.map(s => (
                 <span key={`x-${s}`} className="skill-tag skill-missing" title="In the JD but not on your resume">{s}</span>
               ))}
             </div>
