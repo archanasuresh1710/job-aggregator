@@ -4,6 +4,23 @@ A personal, single-user job-hunting dashboard. Aggregates Java/backend listings 
 
 ---
 
+## Table of Contents
+
+- [Demo](#demo)
+- [Why This Exists](#why-this-exists)
+- [Setup](#setup)
+- [How the AI Matching Works](#how-the-ai-matching-works)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Configuration Reference](#configuration-reference)
+- [API Reference](#api-reference)
+- [Job Sources](#job-sources)
+- [Database Schema](#database-schema)
+- [Future Ideas](#future-ideas)
+
+---
+
 ## Demo
 
 ![Job Feed](backend/src/main/resources/images/screenshot-job-feed.png)
@@ -19,6 +36,53 @@ A personal, single-user job-hunting dashboard. Aggregates Java/backend listings 
 ## Why This Exists
 
 Checking LinkedIn, Adzuna, and other portals every day is tedious — and even when you find a relevant role, deciding whether it's worth applying takes more reading. This tool pulls jobs into one feed, follows each listing's detail page to grab the full job description, and uses Claude AI to score every job against your uploaded resume. You see a `% match`, the skills you already have vs. the ones missing, and an experience-fit signal — so you spend time only on roles that are actually worth applying to.
+
+---
+
+## Setup
+
+### Prerequisites
+- Java 17+
+- Maven
+- Node.js 18+
+- PostgreSQL running locally
+- An **Anthropic API key** (for Claude resume parsing and job scoring)
+- Free **Adzuna API credentials** — sign up at [developer.adzuna.com](https://developer.adzuna.com)
+
+### 1. Create the database
+```sql
+CREATE DATABASE jobdb;
+```
+
+### 2. Configure the app
+```bash
+cp backend/src/main/resources/application.yml.example \
+   backend/src/main/resources/application.yml
+```
+Then open `application.yml` and fill in:
+- `spring.datasource.password` — your PostgreSQL password
+- `adzuna.app-id` and `adzuna.app-key` — from the Adzuna developer portal
+- `ANTHROPIC_API_KEY` — set as an environment variable, or paste the key directly into `anthropic.api-key`
+- `linkedin.keywords`, `linkedin.location`, `adzuna.query`, `adzuna.location` — customise to your target role and city
+
+### 3. Start the backend
+```bash
+cd backend
+mvn spring-boot:run
+```
+Runs on `http://localhost:8080`. Hibernate auto-creates and migrates the schema on startup via `ddl-auto: update`.
+
+### 4. Start the frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Runs on `http://localhost:5173`.
+
+### 5. Upload your resume and fetch jobs
+1. Open **http://localhost:5173** → **My Details** → click **Upload Resume** (PDF or DOCX). Wait ~10–20s for Claude Sonnet to parse it.
+2. Click **Fetch Now** in the Job Feed. New jobs are scored against your resume automatically and sorted by match score.
 
 ---
 
@@ -156,53 +220,6 @@ job-aggregator/
             ├── ColumnFilter.jsx
             └── MyDetailsTab.jsx
 ```
-
----
-
-## Setup
-
-### Prerequisites
-- Java 17+
-- Maven
-- Node.js 18+
-- PostgreSQL running locally
-- An **Anthropic API key** (for Claude resume parsing and job scoring)
-- Free **Adzuna API credentials** — sign up at [developer.adzuna.com](https://developer.adzuna.com)
-
-### 1. Create the database
-```sql
-CREATE DATABASE jobdb;
-```
-
-### 2. Configure the app
-```bash
-cp backend/src/main/resources/application.yml.example \
-   backend/src/main/resources/application.yml
-```
-Then open `application.yml` and fill in:
-- `spring.datasource.password` — your PostgreSQL password
-- `adzuna.app-id` and `adzuna.app-key` — from the Adzuna developer portal
-- `ANTHROPIC_API_KEY` — set as an environment variable, or paste the key directly into `anthropic.api-key`
-- `linkedin.keywords`, `linkedin.location`, `adzuna.query`, `adzuna.location` — customise to your target role and city
-
-### 3. Start the backend
-```bash
-cd backend
-mvn spring-boot:run
-```
-Runs on `http://localhost:8080`. Hibernate auto-creates and migrates the schema on startup via `ddl-auto: update`.
-
-### 4. Start the frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Runs on `http://localhost:5173`.
-
-### 5. Upload your resume and fetch jobs
-1. Open **http://localhost:5173** → **My Details** → click **Upload Resume** (PDF or DOCX). Wait ~10–20s for Claude Sonnet to parse it.
-2. Click **Fetch Now** in the Job Feed. New jobs are scored against your resume automatically and sorted by match score.
 
 ---
 
