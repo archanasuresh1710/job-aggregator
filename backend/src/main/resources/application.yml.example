@@ -1,6 +1,9 @@
 server:
   port: 8080
 
+cors:
+  allowed-origins: "http://localhost:5173"  # comma-separated for multiple origins
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/jobdb

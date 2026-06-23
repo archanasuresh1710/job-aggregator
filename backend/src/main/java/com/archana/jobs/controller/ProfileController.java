@@ -16,7 +16,6 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/profile")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class ProfileController {
 
     private static final Long PROFILE_ID = 1L;
