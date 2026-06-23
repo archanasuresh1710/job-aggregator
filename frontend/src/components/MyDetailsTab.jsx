@@ -8,8 +8,6 @@ const FIELDS = [
   { key: 'phone',        label: 'Phone' },
   { key: 'address',      label: 'Address' },
   { key: 'linkedinUrl',  label: 'LinkedIn URL' },
-  { key: 'portfolioUrl', label: 'Portfolio URL' },
-  { key: 'resumeUrl',    label: 'Resume URL' },
 ]
 
 export default function MyDetailsTab() {
@@ -23,6 +21,66 @@ export default function MyDetailsTab() {
   const [resumeEditing, setResumeEditing] = useState(false)
   const [resumeDraft, setResumeDraft] = useState({})
   const [resumeSaving, setResumeSaving] = useState(false)
+  const [roleEditing, setRoleEditing] = useState(false)
+  const [roleDraft, setRoleDraft] = useState('')
+  const [roleSaving, setRoleSaving] = useState(false)
+  const [newLabel, setNewLabel] = useState('')
+  const [labelSaving, setLabelSaving] = useState(false)
+  const [labelError, setLabelError] = useState(null)
+
+  const resumeLabels = (profile.resumeLabels || '')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+
+  const persistLabels = async (labels) => {
+    setLabelSaving(true)
+    setLabelError(null)
+    try {
+      const updated = await saveProfile({ ...profile, resumeLabels: labels.join('\n') })
+      setProfile(updated)
+      return true
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.statusText || err?.message || 'Failed to save.'
+      setLabelError(typeof msg === 'string' ? msg : 'Failed to save.')
+      return false
+    } finally {
+      setLabelSaving(false)
+    }
+  }
+
+  const addLabel = async () => {
+    const trimmed = newLabel.trim()
+    if (!trimmed) return
+    if (resumeLabels.includes(trimmed)) {
+      setLabelError(`"${trimmed}" already exists.`)
+      return
+    }
+    const ok = await persistLabels([trimmed, ...resumeLabels])
+    if (ok) setNewLabel('')
+  }
+
+  const removeLabel = async (label) => {
+    await persistLabels(resumeLabels.filter(l => l !== label))
+  }
+
+  const startRoleEdit = () => {
+    setRoleDraft(profile.roleDescription || '')
+    setRoleEditing(true)
+  }
+
+  const cancelRoleEdit = () => setRoleEditing(false)
+
+  const saveRoleDescription = async () => {
+    setRoleSaving(true)
+    try {
+      const updated = await saveProfile({ ...profile, roleDescription: roleDraft })
+      setProfile(updated)
+      setRoleEditing(false)
+    } finally {
+      setRoleSaving(false)
+    }
+  }
 
   const SENIORITY_OPTIONS = ['Junior', 'Mid-level', 'Senior', 'Lead', 'Staff', 'Principal']
 
@@ -147,6 +205,49 @@ export default function MyDetailsTab() {
             <button className="btn-action cancel" onClick={cancelEdit}>Cancel</button>
           </div>
         )}
+
+        <div className="role-description-block">
+          <div className="role-description-header">
+            <span className="detail-label">Role Description</span>
+            {!roleEditing && (
+              <div className="role-description-actions">
+                <button
+                  className={`btn-copy ${copied === 'roleDescription' ? 'copied' : ''}`}
+                  onClick={() => handleCopy('roleDescription', profile.roleDescription)}
+                  disabled={!profile.roleDescription}
+                  title="Copy role description"
+                >
+                  {copied === 'roleDescription' ? 'Copied!' : 'Copy'}
+                </button>
+                <button className="btn-add" onClick={startRoleEdit}>
+                  {profile.roleDescription ? 'Edit' : 'Add'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {roleEditing ? (
+            <>
+              <textarea
+                className="inline-input role-description-textarea"
+                rows={8}
+                placeholder="Paste a paragraph describing your current role / responsibilities — you'll be able to copy it from here while applying."
+                value={roleDraft}
+                onChange={e => setRoleDraft(e.target.value)}
+              />
+              <div className="detail-actions">
+                <button className="btn-action save" onClick={saveRoleDescription} disabled={roleSaving}>
+                  {roleSaving ? 'Saving...' : 'Save'}
+                </button>
+                <button className="btn-action cancel" onClick={cancelRoleEdit}>Cancel</button>
+              </div>
+            </>
+          ) : (
+            profile.roleDescription
+              ? <p className="role-description-text">{profile.roleDescription}</p>
+              : <p className="detail-empty">No role description saved yet.</p>
+          )}
+        </div>
       </section>
 
       <section className="details-pane">
@@ -280,6 +381,59 @@ export default function MyDetailsTab() {
         ) : (
           <p className="status">No resume uploaded yet.</p>
         )}
+
+        <div className="resume-labels-block">
+          <div className="my-details-header">
+            <h3 className="resume-labels-title">Resume Versions</h3>
+          </div>
+          <p className="my-details-hint">
+            Track which resume version you sent per application. Add a label here (e.g. <em>v3-fintech</em>,
+            <em> platform-heavy</em>), then pick it from the dropdown when logging an application.
+          </p>
+
+          <div className="resume-labels-add">
+            <input
+              className="inline-input"
+              value={newLabel}
+              onChange={e => { setNewLabel(e.target.value); setLabelError(null) }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLabel() } }}
+              placeholder="Add a resume version label..."
+              disabled={labelSaving}
+            />
+            <button
+              type="button"
+              className="btn-add"
+              onClick={addLabel}
+              disabled={labelSaving || !newLabel.trim()}
+            >
+              {labelSaving ? 'Saving...' : 'Add'}
+            </button>
+          </div>
+
+          {labelError && <p className="form-error">{labelError}</p>}
+
+          {resumeLabels.length === 0 ? (
+            <p className="detail-empty">No resume versions saved yet.</p>
+          ) : (
+            <div className="resume-labels-list">
+              {resumeLabels.map(label => (
+                <span key={label} className="resume-label-chip">
+                  {label}
+                  <button
+                    type="button"
+                    className="resume-label-remove"
+                    onClick={() => removeLabel(label)}
+                    disabled={labelSaving}
+                    title={`Remove "${label}"`}
+                    aria-label={`Remove ${label}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   )

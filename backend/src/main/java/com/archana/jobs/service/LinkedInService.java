@@ -26,9 +26,9 @@ public class LinkedInService {
 
     // f_E=4 → Mid-Senior level (matches 5+ years experience)
     // f_TPR=r604800 → posted in the last 7 days (7 × 86400s)
-    private static final String LINKEDIN_GUEST_API =
+    private static final String LINKEDIN_GUEST_API_FMT =
             "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search" +
-            "?keywords=Java+Spring+Boot+Fintech&location=Bangalore&f_TPR=r604800&f_E=4&start=0";
+            "?keywords=Java+Spring+Boot+Fintech&location=%s&f_TPR=r604800&f_E=4&start=0";
 
     private static final String LINKEDIN_JOB_POSTING_URL =
             "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/";
@@ -43,9 +43,18 @@ public class LinkedInService {
     private static final Pattern JOB_ID_PATTERN = Pattern.compile("(\\d{8,})(?:/|$)");
 
     public List<Job> fetchJobs() {
+        return fetchForLocation("Bangalore");
+    }
+
+    public List<Job> fetchKochi() {
+        return fetchForLocation("Kochi");
+    }
+
+    private List<Job> fetchForLocation(String location) {
         List<Job> jobs = new ArrayList<>();
         try {
-            Document doc = Jsoup.connect(LINKEDIN_GUEST_API)
+            String url = String.format(LINKEDIN_GUEST_API_FMT, location);
+            Document doc = Jsoup.connect(url)
                     .userAgent(USER_AGENT)
                     .header("Accept-Language", "en-US,en;q=0.9")
                     .timeout(15000)
@@ -53,15 +62,15 @@ public class LinkedInService {
 
             Elements jobCards = doc.select("li");
             for (Element card : jobCards) {
-                Job job = parseJobCard(card);
+                Job job = parseJobCard(card, location);
                 if (job != null) jobs.add(job);
             }
 
             enrichWithFullDescriptions(jobs);
 
-            log.info("Fetched {} jobs from LinkedIn", jobs.size());
+            log.info("Fetched {} jobs from LinkedIn ({})", jobs.size(), location);
         } catch (Exception e) {
-            log.error("Failed to fetch LinkedIn jobs: {}", e.getMessage());
+            log.error("Failed to fetch LinkedIn jobs ({}): {}", location, e.getMessage());
         }
         return jobs;
     }
@@ -136,7 +145,7 @@ public class LinkedInService {
         return m.find() ? m.group(1) : null;
     }
 
-    private Job parseJobCard(Element card) {
+    private Job parseJobCard(Element card, String defaultLocation) {
         try {
             Element linkEl = card.selectFirst("a.base-card__full-link");
             if (linkEl == null) linkEl = card.selectFirst("a[href*='/jobs/view/']");
@@ -153,7 +162,7 @@ public class LinkedInService {
             String company = companyEl != null ? companyEl.text().trim() : "Unknown";
 
             Element locationEl = card.selectFirst(".job-search-card__location");
-            String location = locationEl != null ? locationEl.text().trim() : "Bangalore";
+            String location = locationEl != null ? locationEl.text().trim() : defaultLocation;
 
             // Extract any description snippet available in the card
             Element descEl = card.selectFirst(".job-search-card__snippet, .base-search-card__metadata");

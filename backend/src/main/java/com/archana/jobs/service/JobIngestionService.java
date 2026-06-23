@@ -18,6 +18,7 @@ public class JobIngestionService {
     private final AdzunaService adzunaService;
     private final LinkedInService linkedInService;
     private final RemotiveService remotiveService;
+    private final GreenhouseService greenhouseService;
     private final JobMatchingService jobMatchingService;
 
     public void ingestAll() {
@@ -26,13 +27,17 @@ public class JobIngestionService {
         List<Job> newlySaved = new ArrayList<>();
 
         // LinkedIn enriches inline in fetchJobs (parallel, fast). Just dedup + save.
-        newlySaved.addAll(saveNew(linkedInService.fetchJobs(), "linkedin"));
+        newlySaved.addAll(saveNew(linkedInService.fetchJobs(), "linkedin-bangalore"));
+        newlySaved.addAll(saveNew(linkedInService.fetchKochi(), "linkedin-kochi"));
 
         // Adzuna: enrich AFTER dedup so we don't waste 1s/job on duplicates we'd discard.
         newlySaved.addAll(saveAdzuna(adzunaService.fetchJobs()));
         newlySaved.addAll(saveAdzuna(adzunaService.fetchFintechIndia()));
+        newlySaved.addAll(saveAdzuna(adzunaService.fetchKochi()));
 
         newlySaved.addAll(saveNew(remotiveService.fetchJobs(), "remotive"));
+
+        newlySaved.addAll(saveNew(greenhouseService.fetchJobs(), "greenhouse"));
 
         log.info("Ingestion complete. {} new jobs saved.", newlySaved.size());
 

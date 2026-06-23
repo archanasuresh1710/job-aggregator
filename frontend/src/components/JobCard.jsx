@@ -87,11 +87,14 @@ export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore, i
     >
       <div className="job-card-header">
         <div className="job-card-header-main">
-          <h3 className="job-title">
-            <a href={job.url} target="_blank" rel="noopener noreferrer">
-              {job.title}
-            </a>
-          </h3>
+          <div className="job-title-row">
+            <h3 className="job-title">
+              <a href={job.url} target="_blank" rel="noopener noreferrer">
+                {job.title}
+              </a>
+            </h3>
+            {job.isBookmarked && <span className="bookmark-indicator">★ Bookmarked</span>}
+          </div>
           <div className="job-meta">
             <span>{job.company}</span>
             <span>{job.location}</span>
@@ -104,7 +107,6 @@ export default function JobCard({ job, onSeen, onBookmark, onApply, onRescore, i
 
       <div className="job-card-tags">
         <span className={`source-badge source-${job.source}`}>{job.source}</span>
-        {job.isBookmarked && <span className="bookmark-indicator">★ Bookmarked</span>}
       </div>
 
       {isScored && job.matchRationale && (

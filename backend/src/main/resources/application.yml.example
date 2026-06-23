@@ -23,6 +23,14 @@ adzuna:
   query: "java spring boot"
   location: "bangalore"
   results-per-page: 50
+  max-days-old: 30
+
+greenhouse:
+  # Comma-separated list of Greenhouse board tokens (the slug in boards.greenhouse.io/<token>).
+  boards: >-
+    razorpaysoftwareprivatelimited,groww,pay2dc,capco,gleanwork,
+    stripe,chime,brex,mercury,affirm,robinhood,gusto,
+    airbnb,mongodb,postman,databricks
 
 logging:
   level:

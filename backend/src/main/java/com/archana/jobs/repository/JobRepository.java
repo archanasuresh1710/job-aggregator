@@ -33,7 +33,9 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             AND (country = 'IN' OR country IS NULL)
             AND (CAST(?5 AS text) IS NULL
                  OR LOWER(location) LIKE LOWER('%' || ?5 || '%')
-                 OR (?5 = 'bangalore' AND LOWER(location) LIKE '%bengaluru%'))
+                 OR (?5 = 'bangalore' AND LOWER(location) LIKE '%bengaluru%')
+                 OR (?5 = 'kochi' AND LOWER(location) LIKE '%cochin%')
+                 OR (?5 = 'kochi' AND LOWER(location) LIKE '%ernakulam%'))
             ORDER BY match_score DESC NULLS LAST,
                      posted_date DESC NULLS LAST,
                      ingested_at DESC

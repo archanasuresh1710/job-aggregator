@@ -36,11 +36,35 @@ public class ResumeAnalysisService {
                (post-graduation, full-time professional software engineering only)
                and round to the nearest whole year. So 4.7 years → 5, 3.4 → 3.
 
-            For skills, use canonical short names that match how they appear in job
-            descriptions: "Java", "Spring Boot", "Kafka", "PostgreSQL", "AWS", "Docker",
-            "Kubernetes", "Microservices", "REST", "Payments", "Fintech", etc.
-            Do NOT include soft skills, languages, or generic phrases like
-            "problem solving" or "team player".
+            For skills, list EVERY distinct technical skill, technology, framework,
+            library, language, database, tool, platform, methodology, paradigm, or
+            domain mentioned anywhere in the resume — including the summary, work
+            experience bullets, projects, dedicated skills section, and certifications.
+            Be EXHAUSTIVE. Do not truncate, summarize, or pick only the "main" ones.
+            If a skill appears anywhere in the resume, include it.
+
+            Sweep across all of these categories so nothing is missed:
+              - Programming languages (Java, Python, Go, JavaScript, TypeScript, ...)
+              - Frameworks (Spring Boot, Spring MVC, Spring Security, React, ...)
+              - ORMs & data-access (Hibernate, JPA, MyBatis, ...)
+              - Databases & stores (Oracle, PostgreSQL, MySQL, Redis, MongoDB, ...)
+              - Messaging / streaming (Kafka, RabbitMQ, ActiveMQ, ...)
+              - Cloud & infra (AWS, GCP, Azure, EC2, S3, Lambda, ...)
+              - DevOps & build (Docker, Kubernetes, Jenkins, Maven, Gradle, Git, ...)
+              - Testing (JUnit, Mockito, TestNG, Cypress, ...)
+              - API styles (REST, GraphQL, gRPC, SOAP, WebSockets, ...)
+              - Architecture & paradigms (Microservices, Event-driven, OOP, SOLID,
+                Design Patterns, TDD, Agile, Scrum, High Availability, Fault Tolerance, ...)
+              - Security (OAuth, JWT, Encryption, PII Masking, ...)
+              - Performance (JVM Tuning, Query Optimization, Caching, ...)
+              - Monitoring / observability (Splunk, Prometheus, Grafana, ELK, ...)
+              - Domain (Payments, Fintech, BBPS, Banking, E-commerce, Healthcare, ...)
+
+            Use canonical short names that match how they appear in job descriptions
+            ("k8s" → "Kubernetes", "PG" → "PostgreSQL", "Spring framework" → "Spring",
+            "Java SE" → "Java"). Do NOT include soft skills, spoken languages, or
+            generic phrases like "problem solving", "team player", "communication",
+            or "leadership" (those belong in the summary / seniority fields).
 
             For seniority, choose one of: "Junior" (0-2 years), "Mid-level" (3-5 years),
             "Senior" (5-10 years), "Lead" / "Staff" (8+ with leadership signals),

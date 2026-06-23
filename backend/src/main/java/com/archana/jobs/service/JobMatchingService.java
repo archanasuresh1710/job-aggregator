@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class JobMatchingService {
 
     private static final long PROFILE_ID = 1L;
-    private static final int BATCH_SIZE = 5;
+    private static final int BATCH_SIZE = 1;
     private static final String MODEL = "haiku";
 
     private static final Pattern JUNIOR_TITLE = Pattern.compile(

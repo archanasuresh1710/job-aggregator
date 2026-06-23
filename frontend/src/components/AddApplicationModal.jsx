@@ -1,18 +1,27 @@
 import React, { useState } from 'react'
 import { addApplication } from '../api/applications'
+import { useProfile } from '../context/ProfileContext'
 
 const STATUSES = ['Awaiting', 'Interview Round', 'Rejected', 'No Callback']
 const MODES = ['LinkedIn', 'Naukri', 'Foundit', 'Wellfound', 'Referral', 'Career Page', 'Other']
 
 
+const todayLocal = () => new Date().toLocaleDateString('en-CA')
+
 const empty = {
   company: '', role: '', appliedDate: '', location: '',
   status: 'Awaiting', interview: '', remarks: '', modeOfApplication: 'LinkedIn',
-  statusCheckUrl: ''
+  statusCheckUrl: '', resumeLabel: ''
 }
 
 export default function AddApplicationModal({ onClose, onSaved, initialData = {} }) {
-  const [form, setForm] = useState({ ...empty, ...initialData })
+  const { profile } = useProfile()
+  const resumeLabels = (profile?.resumeLabels || '')
+    .split('\n')
+    .map(s => s.trim())
+    .filter(Boolean)
+
+  const [form, setForm] = useState({ ...empty, appliedDate: todayLocal(), ...initialData })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -90,6 +99,19 @@ export default function AddApplicationModal({ onClose, onSaved, initialData = {}
             <label>Application Status Check URL <span style={{color:'#9ca3af', fontWeight:400}}>(optional)</span></label>
             <input value={form.statusCheckUrl} onChange={e => set('statusCheckUrl', e.target.value)}
               placeholder="e.g. company portal link to track your application" />
+          </div>
+          <div className="form-row">
+            <label>Resume Used <span style={{color:'#9ca3af', fontWeight:400}}>(optional)</span></label>
+            {resumeLabels.length > 0 ? (
+              <select value={form.resumeLabel || ''} onChange={e => set('resumeLabel', e.target.value)}>
+                <option value="">—</option>
+                {resumeLabels.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            ) : (
+              <span style={{ fontSize: 13, color: '#6b7280' }}>
+                Add resume version labels in My Details to track which one you sent.
+              </span>
+            )}
           </div>
           <div className="form-row">
             <label>Remarks</label>

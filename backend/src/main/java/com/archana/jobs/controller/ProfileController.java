@@ -52,6 +52,7 @@ public class ProfileController {
 
         // Preserve resume fields if the frontend didn't send them in the PUT body
         if (existing != null) {
+            if (profile.getRoleDescription() == null) profile.setRoleDescription(existing.getRoleDescription());
             if (profile.getResumeFilename() == null) profile.setResumeFilename(existing.getResumeFilename());
             if (profile.getResumeUploadedAt() == null) profile.setResumeUploadedAt(existing.getResumeUploadedAt());
             if (profile.getResumeText() == null) profile.setResumeText(existing.getResumeText());
@@ -60,6 +61,7 @@ public class ProfileController {
             if (profile.getResumeYearsOfExperience() == null) profile.setResumeYearsOfExperience(existing.getResumeYearsOfExperience());
             if (profile.getResumeSeniority() == null) profile.setResumeSeniority(existing.getResumeSeniority());
             if (profile.getResumeSummary() == null) profile.setResumeSummary(existing.getResumeSummary());
+            if (profile.getResumeLabels() == null) profile.setResumeLabels(existing.getResumeLabels());
         }
         Profile saved = profileRepository.save(profile);
 

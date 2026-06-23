@@ -47,6 +47,12 @@ public class Application {
     @Column(columnDefinition = "TEXT")
     private String statusCheckUrl;
 
+    // Label of the resume version sent for this application (matches one of
+    // Profile.resumeLabels). Nullable — older rows pre-dating this feature
+    // and rows where the user didn't pick a label show as blank.
+    @Column(length = 100)
+    private String resumeLabel;
+
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 }

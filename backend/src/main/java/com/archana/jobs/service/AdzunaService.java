@@ -48,6 +48,9 @@ public class AdzunaService {
     @Value("${adzuna.results-per-page}")
     private int resultsPerPage;
 
+    @Value("${adzuna.max-days-old:30}")
+    private int maxDaysOld;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private static final String USER_AGENT =
@@ -59,9 +62,14 @@ public class AdzunaService {
     private static final long ENRICH_DELAY_MS = 1000;
 
     private static final List<String> REQUIRED_TITLE_KEYWORDS = List.of(
+            // engineering anchors
             "java", "spring", "backend", "back end", "back-end", "software engineer",
             "software developer", "sde", "sde2", "sde-2", "full stack", "fullstack",
-            "payment", "payments", "fintech"
+            "platform engineer",
+            // fintech / payments / banking anchors
+            "payment", "payments", "bill payment", "bill payments", "billpay",
+            "fintech", "bank", "banking", "lending", "credit", "finance", "financial",
+            "wallet", "remittance", "treasury", "trading", "investment", "loan", "loans"
     );
 
     public List<Job> fetchJobs() {
@@ -70,6 +78,10 @@ public class AdzunaService {
 
     public List<Job> fetchFintechIndia() {
         return fetch("java fintech", null);
+    }
+
+    public List<Job> fetchKochi() {
+        return fetch(query, "kochi");
     }
 
     private List<Job> fetch(String queryParam, String locationParam) {
@@ -86,6 +98,7 @@ public class AdzunaService {
                     .queryParam("app_key", appKey)
                     .queryParam("what", queryParam)
                     .queryParam("results_per_page", resultsPerPage)
+                    .queryParam("max_days_old", maxDaysOld)
                     .queryParam("sort_by", "date");
 
             if (locationParam != null && !locationParam.isBlank()) {
@@ -244,6 +257,13 @@ public class AdzunaService {
             String created = node.path("created").asText(null);
             if (created != null) {
                 postedDate = LocalDateTime.parse(created, DateTimeFormatter.ISO_DATE_TIME);
+            }
+
+            // Defensive: Adzuna sometimes ignores max_days_old for certain underlying
+            // boards (e.g. when a board re-lists the same ad daily but `created` is the
+            // original post date). Drop anything we know is older than the configured cap.
+            if (postedDate != null && postedDate.isBefore(LocalDateTime.now().minusDays(maxDaysOld))) {
+                return null;
             }
 
             if (description != null && description.length() > 2000) {

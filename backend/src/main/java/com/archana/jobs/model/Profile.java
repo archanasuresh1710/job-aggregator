@@ -40,6 +40,9 @@ public class Profile {
     @Column(columnDefinition = "TEXT")
     private String resumeUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String roleDescription;     // free-form blurb to paste into application "describe yourself" boxes
+
     // ── Resume analysis (uploaded resume parsed by Claude) ──
 
     @Column(length = 255)
@@ -63,4 +66,10 @@ public class Profile {
 
     @Column(columnDefinition = "TEXT")
     private String resumeSummary;       // 1-2 sentence summary
+
+    // Newline-separated list of resume-version labels the user maintains
+    // (e.g. "v3-fintech\nplatform-heavy"). Used to populate the "Resume Used"
+    // dropdown in the apply modal — files themselves live outside the app.
+    @Column(columnDefinition = "TEXT")
+    private String resumeLabels;
 }

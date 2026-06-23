@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { getApplications, getAllApplications, uploadCsv, updateStatus, deleteApplication } from '../api/applications'
+import { getApplications, getAllApplications, uploadCsv, updateStatus, deleteApplication, bulkUpdateStatus } from '../api/applications'
 import AddApplicationModal from './AddApplicationModal'
 import ColumnFilter from './ColumnFilter'
+import { useProfile } from '../context/ProfileContext'
 
 const STATUS_STYLES = {
   'Awaiting':           { bg: '#e8f0fe', color: '#1a56db', border: '#c3d4fb' },
@@ -15,6 +16,11 @@ const ALL_STATUSES = ['Awaiting', 'Interview Round', 'Coding Assessment', 'Rejec
 const FILTERS = ['All', ...ALL_STATUSES]
 
 export default function ApplicationsTab() {
+  const { profile } = useProfile()
+  const resumeLabels = useMemo(() =>
+    (profile?.resumeLabels || '').split('\n').map(s => s.trim()).filter(Boolean)
+  , [profile?.resumeLabels])
+
   const [applications, setApplications] = useState([])
   const [counts, setCounts] = useState({})
   const [filter, setFilter] = useState('All')
@@ -28,12 +34,15 @@ export default function ApplicationsTab() {
   const [statusLinksOnly, setStatusLinksOnly] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
+  const [selectedIds, setSelectedIds] = useState(new Set())
   const [editingId, setEditingId] = useState(null)
   const [editCompany, setEditCompany] = useState('')
   const [editStatus, setEditStatus] = useState('')
   const [editDate, setEditDate] = useState('')
   const [editInterview, setEditInterview] = useState('')
   const [editRemarks, setEditRemarks] = useState('')
+  const [editResumeLabel, setEditResumeLabel] = useState('')
+  const [editStatusUrl, setEditStatusUrl] = useState('')
   const loadCounts = async () => {
     const all = await getAllApplications()
     setCounts(ALL_STATUSES.reduce((acc, s) => {
@@ -63,7 +72,7 @@ export default function ApplicationsTab() {
     visibleApplications.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   , [visibleApplications, page])
 
-  useEffect(() => { setPage(1) }, [filter, company, sort, interviewFilter, locationFilter, statusLinksOnly])
+  useEffect(() => { setPage(1); setSelectedIds(new Set()) }, [filter, company, sort, interviewFilter, locationFilter, statusLinksOnly])
 
   const load = async () => {
     setLoading(true)
@@ -105,12 +114,47 @@ export default function ApplicationsTab() {
     setEditDate(app.appliedDate || '')
     setEditInterview(app.interview || '')
     setEditRemarks(app.remarks || '')
+    setEditResumeLabel(app.resumeLabel || '')
+    setEditStatusUrl(app.statusCheckUrl || '')
   }
 
   const saveEdit = async (id) => {
-    const updated = await updateStatus(id, { company: editCompany, status: editStatus, appliedDate: editDate, interview: editInterview, remarks: editRemarks })
+    const updated = await updateStatus(id, {
+      company: editCompany, status: editStatus, appliedDate: editDate,
+      interview: editInterview, remarks: editRemarks, resumeLabel: editResumeLabel,
+      statusCheckUrl: editStatusUrl,
+    })
     setApplications(prev => prev.map(a => a.id === id ? updated : a))
     setEditingId(null)
+    loadCounts()
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    const pageIds = paginatedApplications.map(a => a.id)
+    const allSelected = pageIds.every(id => selectedIds.has(id))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      allSelected ? pageIds.forEach(id => next.delete(id)) : pageIds.forEach(id => next.add(id))
+      return next
+    })
+  }
+
+  const handleBulkNoCallback = async () => {
+    const ids = [...selectedIds]
+    const updated = await bulkUpdateStatus(ids, 'No Callback')
+    setApplications(prev => prev.map(a => {
+      const u = updated.find(u => u.id === a.id)
+      return u || a
+    }))
+    setSelectedIds(new Set())
     loadCounts()
   }
 
@@ -186,11 +230,27 @@ export default function ApplicationsTab() {
         <p className="status">No applications. Add one or import a CSV.</p>
       )}
 
+      {selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <span>{selectedIds.size} selected</span>
+          <button className="btn-bulk-no-callback" onClick={handleBulkNoCallback}>
+            Mark as No Callback
+          </button>
+          <button className="btn-bulk-clear" onClick={() => setSelectedIds(new Set())}>Clear</button>
+        </div>
+      )}
+
       {visibleApplications.length > 0 && (
         <div className="applications-table-wrap">
           <table className="applications-table">
             <thead>
               <tr>
+                <th className="th-check">
+                  <input type="checkbox"
+                    checked={paginatedApplications.length > 0 && paginatedApplications.every(a => selectedIds.has(a.id))}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th>#</th>
                 <th>Company</th>
                 <th>Role</th>
@@ -213,6 +273,7 @@ export default function ApplicationsTab() {
                   />
                 </th>}
                 <th>Via</th>
+                <th>Resume</th>
                 <th>Remarks</th>
                 <th></th>
               </tr>
@@ -222,12 +283,22 @@ export default function ApplicationsTab() {
                 const style = STATUS_STYLES[app.status] || STATUS_STYLES['No Callback']
                 const isEditing = editingId === app.id
                 return (
-                  <tr key={app.id}>
+                  <tr key={app.id} className={selectedIds.has(app.id) ? 'row-selected' : ''}>
+                    <td className="td-check">
+                      <input type="checkbox"
+                        checked={selectedIds.has(app.id)}
+                        onChange={() => toggleSelect(app.id)}
+                      />
+                    </td>
                     <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                     <td className="td-company">
                       {isEditing ? (
-                        <input value={editCompany} onChange={e => setEditCompany(e.target.value)}
-                          className="inline-input" placeholder="company..." />
+                        <div className="td-company-edit">
+                          <input value={editCompany} onChange={e => setEditCompany(e.target.value)}
+                            className="inline-input" placeholder="company..." />
+                          <input value={editStatusUrl} onChange={e => setEditStatusUrl(e.target.value)}
+                            className="inline-input url-input" placeholder="Status URL..." />
+                        </div>
                       ) : app.statusCheckUrl
                         ? <a href={app.statusCheckUrl} target="_blank" rel="noopener noreferrer">{app.company}</a>
                         : app.company}
@@ -265,6 +336,23 @@ export default function ApplicationsTab() {
                       ) : (app.interview || '—')}
                     </td>}
                     <td>{app.modeOfApplication || '—'}</td>
+                    <td>
+                      {isEditing ? (
+                        resumeLabels.length > 0 ? (
+                          <select value={editResumeLabel} onChange={e => setEditResumeLabel(e.target.value)} className="inline-select">
+                            <option value="">—</option>
+                            {/* keep an existing label even if it's since been removed from Profile */}
+                            {editResumeLabel && !resumeLabels.includes(editResumeLabel) && (
+                              <option value={editResumeLabel}>{editResumeLabel}</option>
+                            )}
+                            {resumeLabels.map(l => <option key={l} value={l}>{l}</option>)}
+                          </select>
+                        ) : (
+                          <input value={editResumeLabel} onChange={e => setEditResumeLabel(e.target.value)}
+                            className="inline-input" placeholder="label..." />
+                        )
+                      ) : (app.resumeLabel || '—')}
+                    </td>
                     <td className="td-remarks">
                       {isEditing ? (
                         <input value={editRemarks} onChange={e => setEditRemarks(e.target.value)}

@@ -39,7 +39,9 @@ export default function App() {
   }
 
   const effectiveDomain = feedView === 'fintech' ? 'fintech' : null
-  const locationFilter = feedView === 'bangalore' ? 'bangalore' : null
+  const locationFilter =
+    feedView === 'bangalore' ? 'bangalore' :
+    feedView === 'kochi' ? 'kochi' : null
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -200,6 +202,10 @@ export default function App() {
               <button className={`domain-tab ${feedView === 'bangalore' ? 'active' : ''}`}
                 onClick={() => setFeedView('bangalore')}>
                 Bangalore
+              </button>
+              <button className={`domain-tab ${feedView === 'kochi' ? 'active' : ''}`}
+                onClick={() => setFeedView('kochi')}>
+                Kochi
               </button>
               <button className={`domain-tab ${feedView === 'fintech' ? 'active' : ''}`}
                 onClick={() => setFeedView('fintech')}>

@@ -14,6 +14,9 @@ export const addApplication = (data) =>
 export const updateStatus = (id, payload) =>
   api.patch(`/applications/${id}/status`, payload).then(r => r.data)
 
+export const bulkUpdateStatus = (ids, status) =>
+  api.patch('/applications/bulk-status', { ids, status }).then(r => r.data)
+
 export const deleteApplication = (id) =>
   api.delete(`/applications/${id}`)
 

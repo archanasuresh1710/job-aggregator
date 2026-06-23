@@ -49,8 +49,26 @@ public class ApplicationController {
             if (body.containsKey("appliedDate")) app.setAppliedDate(body.get("appliedDate"));
             if (body.containsKey("remarks")) app.setRemarks(body.get("remarks"));
             if (body.containsKey("interview")) app.setInterview(body.get("interview"));
+            if (body.containsKey("resumeLabel")) app.setResumeLabel(body.get("resumeLabel"));
+            if (body.containsKey("statusCheckUrl")) app.setStatusCheckUrl(body.get("statusCheckUrl"));
             return ResponseEntity.ok(applicationRepository.save(app));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/bulk-status")
+    public ResponseEntity<List<Application>> bulkUpdateStatus(@RequestBody java.util.Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Integer> ids = (List<Integer>) body.get("ids");
+        String status = (String) body.get("status");
+        if (ids == null || ids.isEmpty() || status == null) return ResponseEntity.badRequest().build();
+        List<Application> updated = ids.stream()
+                .map(id -> applicationRepository.findById(id.longValue()))
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .peek(app -> app.setStatus(status))
+                .map(applicationRepository::save)
+                .toList();
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
