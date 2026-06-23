@@ -4,6 +4,7 @@ import com.archana.jobs.model.Job;
 import com.archana.jobs.util.DomainClassifier;
 import com.archana.jobs.util.SkillExtractor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,11 +25,20 @@ import java.util.regex.Pattern;
 @Service
 public class LinkedInService {
 
+    @Value("${linkedin.keywords:Java+Spring+Boot+Fintech}")
+    private String keywords;
+
+    @Value("${linkedin.location:Bangalore}")
+    private String location;
+
+    @Value("${linkedin.location-secondary:}")
+    private String locationSecondary;
+
     // f_E=4 → Mid-Senior level (matches 5+ years experience)
     // f_TPR=r604800 → posted in the last 7 days (7 × 86400s)
     private static final String LINKEDIN_GUEST_API_FMT =
             "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search" +
-            "?keywords=Java+Spring+Boot+Fintech&location=%s&f_TPR=r604800&f_E=4&start=0";
+            "?keywords=%s&location=%s&f_TPR=r604800&f_E=4&start=0";
 
     private static final String LINKEDIN_JOB_POSTING_URL =
             "https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/";
@@ -43,17 +53,18 @@ public class LinkedInService {
     private static final Pattern JOB_ID_PATTERN = Pattern.compile("(\\d{8,})(?:/|$)");
 
     public List<Job> fetchJobs() {
-        return fetchForLocation("Bangalore");
+        return fetchForLocation(location);
     }
 
     public List<Job> fetchKochi() {
-        return fetchForLocation("Kochi");
+        if (locationSecondary.isBlank()) return List.of();
+        return fetchForLocation(locationSecondary);
     }
 
-    private List<Job> fetchForLocation(String location) {
+    private List<Job> fetchForLocation(String loc) {
         List<Job> jobs = new ArrayList<>();
         try {
-            String url = String.format(LINKEDIN_GUEST_API_FMT, location);
+            String url = String.format(LINKEDIN_GUEST_API_FMT, keywords, loc);
             Document doc = Jsoup.connect(url)
                     .userAgent(USER_AGENT)
                     .header("Accept-Language", "en-US,en;q=0.9")
@@ -62,15 +73,15 @@ public class LinkedInService {
 
             Elements jobCards = doc.select("li");
             for (Element card : jobCards) {
-                Job job = parseJobCard(card, location);
+                Job job = parseJobCard(card, loc);
                 if (job != null) jobs.add(job);
             }
 
             enrichWithFullDescriptions(jobs);
 
-            log.info("Fetched {} jobs from LinkedIn ({})", jobs.size(), location);
+            log.info("Fetched {} jobs from LinkedIn ({})", jobs.size(), loc);
         } catch (Exception e) {
-            log.error("Failed to fetch LinkedIn jobs ({}): {}", location, e.getMessage());
+            log.error("Failed to fetch LinkedIn jobs ({}): {}", loc, e.getMessage());
         }
         return jobs;
     }

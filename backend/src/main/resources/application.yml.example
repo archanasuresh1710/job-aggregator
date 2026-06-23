@@ -20,12 +20,19 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+linkedin:
+  keywords: "Java+Spring+Boot+Fintech"  # URL-encoded keywords for LinkedIn search
+  location: "Bangalore"                  # primary location
+  location-secondary: "Kochi"            # secondary location (leave blank to disable)
+
 adzuna:
   app-id: "YOUR_ADZUNA_APP_ID"
   app-key: "YOUR_ADZUNA_APP_KEY"
   url: "https://api.adzuna.com/v1/api/jobs/in/search/1"
-  query: "java spring boot"       # primary search query
-  location: "bangalore"           # primary location filter
+  query: "java spring boot"              # primary search query
+  query-fintech: "java fintech"          # alternate query for a separate fintech-focused fetch
+  location: "bangalore"                  # primary location filter
+  location-secondary: "kochi"            # secondary location (leave blank to disable)
   results-per-page: 50
   max-days-old: 30
 

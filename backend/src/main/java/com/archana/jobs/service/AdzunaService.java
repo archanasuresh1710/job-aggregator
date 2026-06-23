@@ -51,6 +51,12 @@ public class AdzunaService {
     @Value("${adzuna.max-days-old:30}")
     private int maxDaysOld;
 
+    @Value("${adzuna.query-fintech:${adzuna.query}}")
+    private String queryFintech;
+
+    @Value("${adzuna.location-secondary:}")
+    private String locationSecondary;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
     private static final String USER_AGENT =
@@ -77,11 +83,12 @@ public class AdzunaService {
     }
 
     public List<Job> fetchFintechIndia() {
-        return fetch("java fintech", null);
+        return fetch(queryFintech, null);
     }
 
     public List<Job> fetchKochi() {
-        return fetch(query, "kochi");
+        if (locationSecondary.isBlank()) return List.of();
+        return fetch(query, locationSecondary);
     }
 
     private List<Job> fetch(String queryParam, String locationParam) {
