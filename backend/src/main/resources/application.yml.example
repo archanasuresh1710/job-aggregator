@@ -15,22 +15,32 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 adzuna:
-  app-id: "YOUR_APP_ID"
-  app-key: "YOUR_APP_KEY"
+  app-id: "YOUR_ADZUNA_APP_ID"
+  app-key: "YOUR_ADZUNA_APP_KEY"
   url: "https://api.adzuna.com/v1/api/jobs/in/search/1"
-  query: "java spring boot"
-  location: "bangalore"
+  query: "java spring boot"       # primary search query
+  location: "bangalore"           # primary location filter
   results-per-page: 50
   max-days-old: 30
 
+remotive:
+  search: "java backend"          # keyword sent to Remotive API
+  limit: 100
+
 greenhouse:
-  # Comma-separated list of Greenhouse board tokens (the slug in boards.greenhouse.io/<token>).
+  # Comma-separated Greenhouse board tokens (the slug in boards.greenhouse.io/<token>).
+  # Add any company whose Greenhouse board you want to monitor.
   boards: >-
-    razorpaysoftwareprivatelimited,groww,pay2dc,capco,gleanwork,
-    stripe,chime,brex,mercury,affirm,robinhood,gusto,
-    airbnb,mongodb,postman,databricks
+    YOUR_BOARD_SLUG_1,YOUR_BOARD_SLUG_2
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}  # set the ANTHROPIC_API_KEY environment variable
 
 logging:
   level:
