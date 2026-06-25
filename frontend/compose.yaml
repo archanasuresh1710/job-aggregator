@@ -1,0 +1,13 @@
+services:
+  frontend:
+    build:
+      context: .
+    ports:
+      - 5173:80
+    networks:
+      - jobnet
+
+networks:
+  jobnet:
+    external: true
+    name: jobnet

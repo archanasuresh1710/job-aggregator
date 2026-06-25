@@ -1,0 +1,19 @@
+services:
+  server:
+    build:
+      context: .
+    ports:
+      - 8080:8080
+    networks:
+      - jobnet
+    volumes:
+      - ~/.claude:/home/appuser/.claude:ro
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/jobdb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+
+networks:
+  jobnet:
+    external: true
+    name: jobnet

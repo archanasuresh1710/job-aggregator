@@ -4,6 +4,7 @@ import JobCard from './components/JobCard'
 import ApplicationsTab from './components/ApplicationsTab'
 import AddApplicationModal from './components/AddApplicationModal'
 import MyDetailsTab from './components/MyDetailsTab'
+import InterviewQuestionsTab from './components/InterviewQuestionsTab'
 import { ProfileProvider } from './context/ProfileContext'
 import { getJobs, markSeen, toggleBookmark, triggerIngestion, rescoreJob } from './api/jobs'
 
@@ -183,6 +184,10 @@ export default function App() {
             onClick={() => setActiveTab('details')}>
             My Details
           </button>
+          <button className={`tab ${activeTab === 'interview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('interview')}>
+            Interview Q&amp;A
+          </button>
         </div>
       </header>
 
@@ -257,6 +262,7 @@ export default function App() {
 
       {activeTab === 'applied' && <ApplicationsTab />}
       {activeTab === 'details' && <MyDetailsTab />}
+      {activeTab === 'interview' && <InterviewQuestionsTab />}
 
       {applyJob && (
         <AddApplicationModal
