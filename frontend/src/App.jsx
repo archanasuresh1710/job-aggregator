@@ -1,12 +1,35 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import FilterBar from './components/FilterBar'
-import JobCard from './components/JobCard'
 import ApplicationsTab from './components/ApplicationsTab'
 import AddApplicationModal from './components/AddApplicationModal'
 import MyDetailsTab from './components/MyDetailsTab'
 import InterviewQuestionsTab from './components/InterviewQuestionsTab'
 import { ProfileProvider } from './context/ProfileContext'
 import { getJobs, markSeen, toggleBookmark, triggerIngestion, rescoreJob } from './api/jobs'
+
+function scoreTier(score) {
+  if (score == null) return 'unscored'
+  if (score >= 61) return 'good'
+  if (score >= 26) return 'stretch'
+  return 'pass'
+}
+
+function expBits(job) {
+  const { experienceFit, yearsRequiredMin, experienceGapYears } = job
+  if (!experienceFit || experienceFit === 'match') return { pill: '', cls: '' }
+  if (experienceFit === 'unknown') return { pill: 'Exp. not stated', cls: 'exp-unknown' }
+  if (experienceFit === 'underqualified') {
+    if ((experienceGapYears ?? 0) >= 2) return { pill: `Needs ${yearsRequiredMin}+y`, cls: 'exp-hard-pass' }
+    return { pill: 'Stretch +1y', cls: 'exp-stretch' }
+  }
+  if (experienceFit === 'overqualified') return { pill: 'Overqualified', cls: 'exp-over' }
+  return { pill: '', cls: '' }
+}
+
+function fmtDate(d) {
+  if (!d) return 'Unknown'
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 const sortByScore = (a, b) => {
   const aScore = a.matchScore ?? -Infinity
@@ -29,7 +52,8 @@ export default function App() {
   const [feedView, setFeedView] = useState('bangalore')
   const [applyJob, setApplyJob] = useState(null)
   const [sortMode, setSortMode] = useState('score')
-  const [focusedIndex, setFocusedIndex] = useState(-1)
+  const [selectedJobId, setSelectedJobId] = useState(null)
+  const [rescoringId, setRescoringId] = useState(null)
   const [bannerDismissed, setBannerDismissed] = useState(
     () => typeof localStorage !== 'undefined' && localStorage.getItem('feedBannerDismissed') === '1'
   )
@@ -68,22 +92,19 @@ export default function App() {
     return [...jobs].sort(cmp)
   }, [jobs, sortMode])
 
+  // Auto-select first job; re-select when current selection is removed
   useEffect(() => {
-    if (focusedIndex < 0) return
-    if (sortedJobs.length === 0) {
-      setFocusedIndex(-1)
-    } else if (focusedIndex >= sortedJobs.length) {
-      setFocusedIndex(sortedJobs.length - 1)
-    }
-  }, [sortedJobs.length, focusedIndex])
+    if (sortedJobs.length === 0) { setSelectedJobId(null); return }
+    if (selectedJobId && sortedJobs.find(j => j.id === selectedJobId)) return
+    setSelectedJobId(sortedJobs[0].id)
+  }, [sortedJobs])
 
+  // Scroll selected row into view inside feed-list-pane
   useEffect(() => {
-    if (focusedIndex < 0) return
-    const job = sortedJobs[focusedIndex]
-    if (!job) return
-    const el = document.querySelector(`[data-job-id="${job.id}"]`)
+    if (!selectedJobId) return
+    const el = document.querySelector(`[data-job-id="${selectedJobId}"]`)
     if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-  }, [focusedIndex, sortedJobs])
+  }, [selectedJobId])
 
   const handleSeen = async (id) => {
     await markSeen(id)
@@ -100,8 +121,13 @@ export default function App() {
   }
 
   const handleRescore = async (id) => {
-    const updated = await rescoreJob(id)
-    setJobs(prev => prev.map(j => j.id === id ? updated : j))
+    setRescoringId(id)
+    try {
+      const updated = await rescoreJob(id)
+      setJobs(prev => prev.map(j => j.id === id ? updated : j))
+    } finally {
+      setRescoringId(null)
+    }
   }
 
   const handleIngest = async () => {
@@ -113,7 +139,7 @@ export default function App() {
     setActiveTab(tab)
     setKeyword('')
     setSource('')
-    setFocusedIndex(-1)
+    setSelectedJobId(null)
   }
 
   useEffect(() => {
@@ -129,16 +155,18 @@ export default function App() {
       const len = sortedJobs.length
       if (len === 0) return
 
-      const focused = focusedIndex >= 0 && focusedIndex < len ? sortedJobs[focusedIndex] : null
+      const idx = sortedJobs.findIndex(j => j.id === selectedJobId)
+      const curIdx = idx < 0 ? 0 : idx
+      const focused = sortedJobs[curIdx]
 
       switch (e.key) {
         case 'j':
           e.preventDefault()
-          setFocusedIndex(i => Math.min(i < 0 ? 0 : i + 1, len - 1))
+          setSelectedJobId(sortedJobs[Math.min(curIdx + 1, len - 1)].id)
           break
         case 'k':
           e.preventDefault()
-          setFocusedIndex(i => Math.max(0, i < 0 ? 0 : i - 1))
+          setSelectedJobId(sortedJobs[Math.max(0, curIdx - 1)].id)
           break
         case 's':
           if (!focused || focused.isSeen) return
@@ -156,7 +184,7 @@ export default function App() {
           setApplyJob(focused)
           break
         case 'Escape':
-          setFocusedIndex(-1)
+          setSelectedJobId(null)
           break
         default:
       }
@@ -164,7 +192,11 @@ export default function App() {
 
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [activeTab, applyJob, sortedJobs, focusedIndex, hideSeen])
+  }, [activeTab, applyJob, sortedJobs, selectedJobId, hideSeen])
+
+  const selectedJob = selectedJobId
+    ? sortedJobs.find(j => j.id === selectedJobId) ?? null
+    : (sortedJobs[0] ?? null)
 
   return (
     <ProfileProvider>
@@ -205,30 +237,18 @@ export default function App() {
           <div className="feed-controls">
             <div className="domain-tabs">
               <button className={`domain-tab ${feedView === 'bangalore' ? 'active' : ''}`}
-                onClick={() => setFeedView('bangalore')}>
-                Bangalore
-              </button>
+                onClick={() => setFeedView('bangalore')}>Bangalore</button>
               <button className={`domain-tab ${feedView === 'kochi' ? 'active' : ''}`}
-                onClick={() => setFeedView('kochi')}>
-                Kochi
-              </button>
+                onClick={() => setFeedView('kochi')}>Kochi</button>
               <button className={`domain-tab ${feedView === 'fintech' ? 'active' : ''}`}
-                onClick={() => setFeedView('fintech')}>
-                Fintech
-              </button>
+                onClick={() => setFeedView('fintech')}>Fintech</button>
             </div>
             <div className="sort-control" role="group" aria-label="Sort jobs">
               <span className="sort-label">Sort</span>
-              <button
-                className={`sort-pill ${sortMode === 'score' ? 'active' : ''}`}
-                onClick={() => setSortMode('score')}>
-                Best match
-              </button>
-              <button
-                className={`sort-pill ${sortMode === 'date' ? 'active' : ''}`}
-                onClick={() => setSortMode('date')}>
-                Newest
-              </button>
+              <button className={`sort-pill ${sortMode === 'score' ? 'active' : ''}`}
+                onClick={() => setSortMode('score')}>Best match</button>
+              <button className={`sort-pill ${sortMode === 'date' ? 'active' : ''}`}
+                onClick={() => setSortMode('date')}>Newest</button>
             </div>
           </div>
           {!bannerDismissed && (
@@ -244,19 +264,66 @@ export default function App() {
           <p className="kbd-hint">
             <kbd>j</kbd>/<kbd>k</kbd> navigate · <kbd>s</kbd> seen · <kbd>b</kbd> bookmark · <kbd>a</kbd> apply
           </p>
-          <main className="job-list">
-            {loading && <p className="status">Loading...</p>}
-            {error && <p className="status error">{error}</p>}
-            {!loading && !error && sortedJobs.length === 0 && (
-              <p className="status">No jobs found. Click "Fetch Now" to pull from sources.</p>
-            )}
-            {sortedJobs.map((job, idx) => (
-              <JobCard key={job.id} job={job}
-                isFocused={idx === focusedIndex}
-                onSeen={handleSeen} onBookmark={handleBookmark}
-                onApply={setApplyJob} onRescore={handleRescore} />
-            ))}
-          </main>
+
+          {loading && <p className="status">Loading...</p>}
+          {error && <p className="status error">{error}</p>}
+          {!loading && !error && sortedJobs.length === 0 && (
+            <p className="status">No jobs found. Click "Fetch Now" to pull from sources.</p>
+          )}
+
+          {sortedJobs.length > 0 && (
+            <div className="feed-split">
+              <div className="feed-list-pane">
+                <div className="feed-count">{sortedJobs.length} matches</div>
+                {sortedJobs.map(job => {
+                  const tier = scoreTier(job.matchScore)
+                  const exp = expBits(job)
+                  return (
+                    <div
+                      key={job.id}
+                      data-job-id={job.id}
+                      className={`job-row tier-${tier} ${job.isSeen ? 'seen' : ''} ${job.id === selectedJobId ? 'selected' : ''}`}
+                      onClick={() => setSelectedJobId(job.id)}
+                    >
+                      <div className="job-row-top">
+                        <div>
+                          <div className="job-row-title">{job.title}</div>
+                          <div className="job-row-company">{job.company}</div>
+                        </div>
+                        <span className={`score-chip score-${tier}`}>
+                          {job.matchScore == null ? '—' : `${job.matchScore}%`}
+                        </span>
+                      </div>
+                      <div className="job-row-meta">
+                        <span>{job.location}</span>
+                        <span>{fmtDate(job.postedDate)}</span>
+                      </div>
+                      <div className="job-row-foot">
+                        <span className={`source-badge source-${job.source}`}>{job.source}</span>
+                        {job.isBookmarked && <span className="bookmark-indicator">★ Saved</span>}
+                        {exp.pill && <span className={`exp-pill ${exp.cls}`}>{exp.pill}</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="feed-detail-pane">
+                {selectedJob ? (
+                  <JobDetail
+                    job={selectedJob}
+                    onSeen={handleSeen}
+                    onBookmark={handleBookmark}
+                    onApply={setApplyJob}
+                    onRescore={handleRescore}
+                    rescoringId={rescoringId}
+                  />
+                ) : (
+                  <div className="feed-empty-detail">Select a job to see details</div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -287,5 +354,140 @@ export default function App() {
       )}
     </div>
     </ProfileProvider>
+  )
+}
+
+function JobDetail({ job, onSeen, onBookmark, onApply, onRescore, rescoringId }) {
+  const tier = scoreTier(job.matchScore)
+  const exp = expBits(job)
+  const isScored = job.matchScore != null
+  const matchedSkills = (job.matchedSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const allMissing = (job.missingSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const criticalMissing = (job.criticalMissingSkills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const criticalSet = new Set(criticalMissing.map(s => s.toLowerCase()))
+  const niceToHaveMissing = allMissing.filter(s => !criticalSet.has(s.toLowerCase()))
+  const fallbackSkills = (job.skills || '').split(',').map(s => s.trim()).filter(Boolean)
+  const description = job.description || job.jobDescription || ''
+
+  return (
+    <div className="job-detail">
+      <div className="job-detail-header">
+        <div>
+          <h2 className="job-detail-title">
+            <a href={job.url} target="_blank" rel="noopener noreferrer">{job.title}</a>
+          </h2>
+          <div className="job-detail-sub">
+            <span className={`source-badge source-${job.source}`}>{job.source}</span>
+            <span>{job.company}</span>
+            <span>{job.location}</span>
+            <span>{fmtDate(job.postedDate)}</span>
+            {exp.pill && <span className={`exp-pill ${exp.cls}`}>{exp.pill}</span>}
+          </div>
+        </div>
+        {isScored ? (
+          <span className={`score-badge score-lg score-${tier}`}>
+            <span className="score-value">{job.matchScore}%</span>
+            <span className="score-caption">resume match</span>
+          </span>
+        ) : (
+          <span className="score-badge score-lg score-unscored">Not scored</span>
+        )}
+      </div>
+
+      <div className="job-detail-cta">
+        <button className="btn-apply-lg" onClick={() => onApply(job)}>Mark as Applied</button>
+        <button className="btn-bookmark" onClick={() => onBookmark(job.id)}>
+          {job.isBookmarked ? 'Unbookmark' : 'Bookmark'}
+        </button>
+        <button className="btn-seen" onClick={() => onSeen(job.id)} disabled={job.isSeen}>
+          {job.isSeen ? 'Seen' : 'Mark Seen'}
+        </button>
+        <button
+          className="btn-rescore"
+          onClick={() => onRescore(job.id)}
+          disabled={rescoringId === job.id}
+        >
+          {rescoringId === job.id ? 'Scoring...' : (isScored ? 'Rescore' : 'Score')}
+        </button>
+      </div>
+
+      {isScored && job.matchRationale && (
+        <div className="job-detail-section">
+          <div className="job-detail-section-label">Why this score</div>
+          <p className="match-rationale">{job.matchRationale}</p>
+        </div>
+      )}
+
+      <div className="job-detail-section">
+        <div className="job-detail-section-label">Skills</div>
+        <div className="match-skills">
+          {isScored ? (
+            <>
+              {matchedSkills.length > 0 && (
+                <div className="skills-list">
+                  <span className="skills-label">On your resume:</span>
+                  {matchedSkills.map(s => <span key={s} className="skill-tag skill-matched">{s}</span>)}
+                </div>
+              )}
+              {criticalMissing.length > 0 && (
+                <div className="skills-list">
+                  <span className="skills-label skills-label-critical">Required, missing:</span>
+                  {criticalMissing.map(s => <span key={s} className="skill-tag skill-critical">{s}</span>)}
+                </div>
+              )}
+              {niceToHaveMissing.length > 0 && (
+                <div className="skills-list">
+                  <span className="skills-label">Nice-to-have, missing:</span>
+                  {niceToHaveMissing.map(s => <span key={s} className="skill-tag skill-missing">{s}</span>)}
+                </div>
+              )}
+              {matchedSkills.length === 0 && criticalMissing.length === 0 && niceToHaveMissing.length === 0 && (
+                <p style={{ color: '#a8a095', fontSize: 13 }}>No skill breakdown available.</p>
+              )}
+            </>
+          ) : (
+            fallbackSkills.length > 0 ? (
+              <div className="skills-list">
+                {fallbackSkills.map(s => <span key={s} className="skill-tag">{s}</span>)}
+              </div>
+            ) : (
+              <p style={{ color: '#a8a095', fontSize: 13 }}>Score this job to see skill breakdown.</p>
+            )
+          )}
+        </div>
+      </div>
+
+      {description && (
+        <div className="job-detail-section">
+          <div className="job-detail-section-label">Description</div>
+          <p className="job-detail-desc">{description}</p>
+        </div>
+      )}
+
+      <div className="job-detail-section">
+        <div className="detail-meta-grid">
+          <div className="detail-meta-cell">
+            <span className="detail-meta-key">Source</span>
+            <span className="detail-meta-val">{job.source}</span>
+          </div>
+          <div className="detail-meta-cell">
+            <span className="detail-meta-key">Posted</span>
+            <span className="detail-meta-val">{fmtDate(job.postedDate)}</span>
+          </div>
+          {isScored && (
+            <div className="detail-meta-cell">
+              <span className="detail-meta-key">Match</span>
+              <span className="detail-meta-val">{job.matchScore}%</span>
+            </div>
+          )}
+          {job.yearsRequiredMin != null && (
+            <div className="detail-meta-cell">
+              <span className="detail-meta-key">Experience req.</span>
+              <span className="detail-meta-val">{job.yearsRequiredMin}+ yrs</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

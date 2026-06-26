@@ -35,6 +35,9 @@ public class Profile {
     private String linkedinUrl;
 
     @Column(columnDefinition = "TEXT")
+    private String githubUrl;
+
+    @Column(columnDefinition = "TEXT")
     private String portfolioUrl;
 
     @Column(columnDefinition = "TEXT")

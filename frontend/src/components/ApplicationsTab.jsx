@@ -43,6 +43,7 @@ export default function ApplicationsTab() {
   const [editRemarks, setEditRemarks] = useState('')
   const [editResumeLabel, setEditResumeLabel] = useState('')
   const [editStatusUrl, setEditStatusUrl] = useState('')
+
   const loadCounts = async () => {
     const all = await getAllApplications()
     setCounts(ALL_STATUSES.reduce((acc, s) => {
@@ -341,7 +342,6 @@ export default function ApplicationsTab() {
                         resumeLabels.length > 0 ? (
                           <select value={editResumeLabel} onChange={e => setEditResumeLabel(e.target.value)} className="inline-select">
                             <option value="">—</option>
-                            {/* keep an existing label even if it's since been removed from Profile */}
                             {editResumeLabel && !resumeLabels.includes(editResumeLabel) && (
                               <option value={editResumeLabel}>{editResumeLabel}</option>
                             )}

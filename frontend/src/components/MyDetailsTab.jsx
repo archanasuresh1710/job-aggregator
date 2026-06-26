@@ -8,6 +8,7 @@ const FIELDS = [
   { key: 'phone',        label: 'Phone' },
   { key: 'address',      label: 'Address' },
   { key: 'linkedinUrl',  label: 'LinkedIn URL' },
+  { key: 'githubUrl',    label: 'Github URL' }
 ]
 
 export default function MyDetailsTab() {
@@ -158,14 +159,50 @@ export default function MyDetailsTab() {
     }
   }
 
+  const initials = (profile.name || '')
+    .split(/\s+/).filter(Boolean).slice(0, 2)
+    .map(w => w[0].toUpperCase()).join('') || '?'
+
+  const headline = [profile.resumeSeniority, profile.resumeStack].filter(Boolean).join(' · ')
+
   return (
+    <>
+      <div className="profile-hero">
+        <div className="profile-avatar">{initials}</div>
+        <div className="profile-hero-main">
+          <div className="profile-hero-name">{profile.name || 'Your Name'}</div>
+          {headline && <div className="profile-hero-headline">{headline}</div>}
+          <div className="profile-hero-facts">
+            {profile.resumeYearsOfExperience != null && (
+              <span className="profile-fact-chip"><strong>{profile.resumeYearsOfExperience} yrs</strong> experience</span>
+            )}
+            {profile.resumeSeniority && (
+              <span className="profile-fact-chip"><strong>{profile.resumeSeniority}</strong></span>
+            )}
+            {profile.address && (
+              <span className="profile-fact-chip">{profile.address}</span>
+            )}
+            {profile.email && (
+              <span className="profile-fact-chip">{profile.email}</span>
+            )}
+            {resumeLabels.length > 0 && (
+              <span className="profile-fact-chip">
+                {resumeLabels.length} resume version{resumeLabels.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="profile-hero-actions">
+          {!editing && (
+            <button className="btn-add" onClick={startEdit}>Edit profile</button>
+          )}
+        </div>
+      </div>
+
     <div className="my-details-split">
       <section className="details-pane">
         <div className="my-details-header">
-          <h2>My Details</h2>
-          {!editing && (
-            <button className="btn-add" onClick={startEdit}>Edit</button>
-          )}
+          <h2>Contact</h2>
         </div>
         <p className="my-details-hint">Quick-copy your details while filling job applications.</p>
 
@@ -436,5 +473,6 @@ export default function MyDetailsTab() {
         </div>
       </section>
     </div>
+    </>
   )
 }
