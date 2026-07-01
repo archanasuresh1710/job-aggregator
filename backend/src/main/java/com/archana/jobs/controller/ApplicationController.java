@@ -103,6 +103,7 @@ public class ApplicationController {
                         .interview(get(row, 5))
                         .remarks(get(row, 6))
                         .modeOfApplication(get(row, 7))
+                        .resumeLabel(get(row, 8))
                         .build();
 
                 applications.add(app);

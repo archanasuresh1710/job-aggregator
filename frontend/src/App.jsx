@@ -411,6 +411,31 @@ function JobDetail({ job, onSeen, onBookmark, onApply, onRescore, rescoringId })
         </button>
       </div>
 
+      <div className="job-detail-section">
+        <div className="detail-meta-grid">
+          <div className="detail-meta-cell">
+            <span className="detail-meta-key">Source</span>
+            <span className="detail-meta-val">{job.source}</span>
+          </div>
+          <div className="detail-meta-cell">
+            <span className="detail-meta-key">Posted</span>
+            <span className="detail-meta-val">{fmtDate(job.postedDate)}</span>
+          </div>
+          {isScored && (
+            <div className="detail-meta-cell">
+              <span className="detail-meta-key">Match</span>
+              <span className="detail-meta-val">{job.matchScore}%</span>
+            </div>
+          )}
+          {job.yearsRequiredMin != null && (
+            <div className="detail-meta-cell">
+              <span className="detail-meta-key">Experience req.</span>
+              <span className="detail-meta-val">{job.yearsRequiredMin}+ yrs</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {isScored && job.matchRationale && (
         <div className="job-detail-section">
           <div className="job-detail-section-label">Why this score</div>
@@ -463,31 +488,7 @@ function JobDetail({ job, onSeen, onBookmark, onApply, onRescore, rescoringId })
           <p className="job-detail-desc">{description}</p>
         </div>
       )}
-
-      <div className="job-detail-section">
-        <div className="detail-meta-grid">
-          <div className="detail-meta-cell">
-            <span className="detail-meta-key">Source</span>
-            <span className="detail-meta-val">{job.source}</span>
-          </div>
-          <div className="detail-meta-cell">
-            <span className="detail-meta-key">Posted</span>
-            <span className="detail-meta-val">{fmtDate(job.postedDate)}</span>
-          </div>
-          {isScored && (
-            <div className="detail-meta-cell">
-              <span className="detail-meta-key">Match</span>
-              <span className="detail-meta-val">{job.matchScore}%</span>
-            </div>
-          )}
-          {job.yearsRequiredMin != null && (
-            <div className="detail-meta-cell">
-              <span className="detail-meta-key">Experience req.</span>
-              <span className="detail-meta-val">{job.yearsRequiredMin}+ yrs</span>
-            </div>
-          )}
-        </div>
-      </div>
+      
     </div>
   )
 }
